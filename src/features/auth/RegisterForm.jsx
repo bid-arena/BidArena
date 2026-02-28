@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import api from "../../services/api";
 
 const RegisterForm = () => {
     const [formData, setFormData] = useState({
@@ -38,19 +39,36 @@ const RegisterForm = () => {
         return newErrors;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
         const validationErrors = validate();
         setErrors(validationErrors);
 
         if (Object.keys(validationErrors).length !== 0) return;
 
-        setLoading(true);
+        try {
+            setLoading(true);
 
-        setTimeout(() => {
-            console.log("Registered:", formData);
+            const response = await api.post("/auth/register", {
+                organizerName: formData.organizerName,
+                email: formData.email,
+                password: formData.password,
+            });
+
+            console.log("Success:", response.data);
+
+            alert("Organizer Registered Successfully");
+
+            // Optional: redirect
+            // navigate("/dashboard");
+
+        } catch (error) {
+            console.error("Error:", error.response?.data);
+            alert(error.response?.data?.message || "Registration failed");
+        } finally {
             setLoading(false);
-        }, 2000);
+        }
     };
 
     const handleChange = (e) => {

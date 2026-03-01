@@ -3,31 +3,32 @@ import RegisterForm from "../features/auth/RegisterForm";
 
 const Register = () => {
     return (
-        <div className="min-h-screen bg-[#0A0F2C] flex items-center justify-center px-4 relative overflow-hidden">
+        <div className="min-h-screen bg-[#0B1120] flex items-center justify-center px-4 relative overflow-hidden">
 
-            {/* Background Glow */}
-            <div className="absolute w-[600px] h-[600px] bg-[#00E676] blur-[200px] opacity-10 rounded-full -top-20 -left-20"></div>
+            {/* Subtle background glow */}
+            <div className="absolute w-[500px] h-[500px] bg-[#FACC15] blur-[180px] opacity-10 rounded-full -top-20 -left-20"></div>
 
             <div className="relative z-10 w-full max-w-6xl grid md:grid-cols-2 bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
 
                 {/* Left Panel */}
-                <div className="hidden md:flex flex-col justify-center p-12 bg-[#001F54]">
+                <div className="hidden md:flex flex-col justify-center p-12 bg-[#111827]">
                     <h2 className="text-4xl font-bold leading-tight text-white">
-                        Start Managing <br />
-                        <span className="text-[#FDB913]">Your Cricket Auction</span>
+                        Build & Manage <br />
+                        <span className="text-[#FACC15]">
+                            Cricket Tournaments Professionally
+                        </span>
                     </h2>
 
-                    <p className="text-[#B0B8D1] mt-6">
-                        Create teams, register owners, upload players, and control
-                        the entire auction from a powerful organizer dashboard.
+                    <p className="text-gray-400 mt-6">
+                        Register as an organizer to create tournaments, manage teams,
+                        assign captains, and control players — all from one secure dashboard.
                     </p>
                 </div>
 
-                {/* Right Panel (Form Side) */}
-                <div className="bg-[#0F1E4D] p-8 md:p-12 text-white">
+                {/* Right Panel */}
+                <div className="bg-[#1F2937] p-8 md:p-12 text-white">
                     <RegisterForm />
                 </div>
-
             </div>
         </div>
     );

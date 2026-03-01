@@ -1,47 +1,46 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import api from "../../services/api";
+import toast from "react-hot-toast";
 
 const RegisterForm = () => {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         organizerName: "",
         email: "",
         password: "",
+        role: "ORGANIZER",
     });
 
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Validation Function
     const validate = () => {
         let newErrors = {};
 
-        if (!formData.organizerName.trim()) {
+        if (!formData.organizerName.trim())
             newErrors.organizerName = "Organizer name is required";
-        }
 
-        if (!formData.email) {
+        if (!formData.email)
             newErrors.email = "Email is required";
-        } else if (
+        else if (
             !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)
-        ) {
+        )
             newErrors.email = "Invalid email address";
-        }
 
-        if (!formData.password) {
+        if (!formData.password)
             newErrors.password = "Password is required";
-        } else if (formData.password.length < 6) {
-            newErrors.password = "Password must be at least 6 characters";
-        }
+        else if (formData.password.length < 6)
+            newErrors.password = "Minimum 6 characters required";
 
         return newErrors;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         const validationErrors = validate();
         setErrors(validationErrors);
 
@@ -50,22 +49,17 @@ const RegisterForm = () => {
         try {
             setLoading(true);
 
-            const response = await api.post("/auth/register", {
-                organizerName: formData.organizerName,
-                email: formData.email,
-                password: formData.password,
-            });
+            await api.post("/auth/register", formData);
 
-            console.log("Success:", response.data);
+            toast.success("Organizer Registered Successfully");
 
-            alert("Organizer Registered Successfully");
-
-            // Optional: redirect
-            // navigate("/dashboard");
-
+            setTimeout(() => {
+                navigate("/login");
+            }, 1500);
         } catch (error) {
-            console.error("Error:", error.response?.data);
-            alert(error.response?.data?.message || "Registration failed");
+            toast.error(
+                error.response?.data?.message || "Registration failed"
+            );
         } finally {
             setLoading(false);
         }
@@ -77,30 +71,31 @@ const RegisterForm = () => {
 
     return (
         <div>
-            <h2 className="text-3xl font-bold text-white text-center mb-2">
+            <h2 className="text-3xl font-bold text-center mb-2">
                 Organizer Registration
             </h2>
 
-            <p className="text-[#B0B8D1] text-center mb-8">
-                Create your auction management account
+            <p className="text-gray-400 text-center mb-8">
+                Create your management account
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Organizer Name */}
                 <div>
-                    <label className="text-sm text-[#B0B8D1]">Organizer Name</label>
+                    <label className="text-sm text-gray-400">
+                        Organizer Name
+                    </label>
                     <input
                         type="text"
                         name="organizerName"
                         value={formData.organizerName}
                         onChange={handleChange}
                         placeholder="Enter organizer name"
-                        className={`w-full mt-2 px-4 py-3 bg-[#0A0F2C] border rounded-xl text-white placeholder-gray-400 focus:outline-none transition ${errors.organizerName
-                            ? "border-red-500 focus:ring-2 focus:ring-red-500"
-                            : formData.organizerName
-                                ? "border-green-500"
-                                : "border-white/10 focus:ring-2 focus:ring-[#FDB913]"
+                        className={`w-full mt-2 px-4 py-3 bg-[#0B1120] border rounded-xl text-white placeholder-gray-500 focus:outline-none transition
+              ${errors.organizerName
+                                ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                                : "border-white/10 focus:ring-2 focus:ring-[#FACC15]"
                             }`}
                     />
                     {errors.organizerName && (
@@ -112,18 +107,19 @@ const RegisterForm = () => {
 
                 {/* Email */}
                 <div>
-                    <label className="text-sm text-[#B0B8D1]">Email Address</label>
+                    <label className="text-sm text-gray-400">
+                        Email Address
+                    </label>
                     <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="Enter email"
-                        className={`w-full mt-2 px-4 py-3 bg-[#0A0F2C] border rounded-xl text-white placeholder-gray-400 focus:outline-none transition ${errors.email
-                            ? "border-red-500 focus:ring-2 focus:ring-red-500"
-                            : formData.email
-                                ? "border-green-500"
-                                : "border-white/10 focus:ring-2 focus:ring-[#FDB913]"
+                        className={`w-full mt-2 px-4 py-3 bg-[#0B1120] border rounded-xl text-white placeholder-gray-500 focus:outline-none transition
+              ${errors.email
+                                ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                                : "border-white/10 focus:ring-2 focus:ring-[#FACC15]"
                             }`}
                     />
                     {errors.email && (
@@ -135,7 +131,9 @@ const RegisterForm = () => {
 
                 {/* Password */}
                 <div className="relative">
-                    <label className="text-sm text-[#B0B8D1]">Password</label>
+                    <label className="text-sm text-gray-400">
+                        Password
+                    </label>
 
                     <input
                         type={showPassword ? "text" : "password"}
@@ -143,17 +141,15 @@ const RegisterForm = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Enter password"
-                        className={`w-full mt-2 px-4 py-3 pr-12 bg-[#0A0F2C] border rounded-xl text-white placeholder-gray-400 focus:outline-none transition ${errors.password
-                            ? "border-red-500 focus:ring-2 focus:ring-red-500"
-                            : formData.password.length >= 6
-                                ? "border-green-500"
-                                : "border-white/10 focus:ring-2 focus:ring-[#FDB913]"
+                        className={`w-full mt-2 px-4 py-3 pr-12 bg-[#0B1120] border rounded-xl text-white placeholder-gray-500 focus:outline-none transition
+              ${errors.password
+                                ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                                : "border-white/10 focus:ring-2 focus:ring-[#FACC15]"
                             }`}
                     />
 
-                    {/* Eye Icon */}
                     <div
-                        className="absolute right-4 top-[46px] cursor-pointer text-gray-400 hover:text-[#FDB913]"
+                        className="absolute right-4 top-[46px] cursor-pointer text-gray-400 hover:text-[#FACC15]"
                         onClick={() => setShowPassword(!showPassword)}
                     >
                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -166,18 +162,19 @@ const RegisterForm = () => {
                     )}
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit */}
                 <button
                     type="submit"
                     disabled={loading}
-                    className={`w-full py-3 rounded-full font-semibold shadow-lg transition duration-300 flex items-center justify-center gap-2 ${loading
-                        ? "bg-gray-600 cursor-not-allowed"
-                        : "bg-gradient-to-r from-[#00E676] to-[#00C853] hover:scale-105 text-black"
+                    className={`w-full py-3 rounded-xl font-semibold transition duration-300 flex items-center justify-center gap-2
+            ${loading
+                            ? "bg-gray-700 cursor-not-allowed"
+                            : "bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black hover:opacity-90 shadow-lg shadow-yellow-500/20"
                         }`}
                 >
                     {loading ? (
                         <>
-                            <Loader2 className="animate-spin" size={20} />
+                            <Loader2 className="animate-spin" size={18} />
                             Creating Account...
                         </>
                     ) : (
@@ -186,9 +183,9 @@ const RegisterForm = () => {
                 </button>
             </form>
 
-            <p className="text-[#B0B8D1] text-center mt-6 text-sm">
-                Already registered?{" "}
-                <Link to="/login" className="text-[#FDB913] hover:underline">
+            <p className="text-gray-400 text-center mt-6 text-sm">
+                Already have an account?{" "}
+                <Link to="/login" className="text-[#FACC15] hover:underline">
                     Login
                 </Link>
             </p>

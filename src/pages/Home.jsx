@@ -1,100 +1,140 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const Home = () => {
+export default function Home() {
     return (
-        <div className="min-h-screen w-full bg-[#0A0F2C] text-white overflow-x-hidden">
+        <div className="bg-[#0B1120] text-white min-h-screen select-none">
 
-            {/* Navbar */}
-            <nav className="flex justify-between items-center px-6 md:px-14 py-6 border-b border-white/10 backdrop-blur-md bg-white/5">
-                <h1 className="text-3xl font-extrabold">
-                    <span className="text-[#00E676]">Bid</span>
-                    <span className="text-[#FDB913]">Arena</span>
+            <nav className="flex justify-between items-center px-8 py-5 border-b border-gray-800">
+                <h1 className="text-2xl font-bold text-yellow-400">
+                    BidArena
                 </h1>
 
-                <Link
-                    to="/register"
-                    className="bg-gradient-to-r from-[#FDB913] to-[#FF9800] text-black px-6 py-2 rounded-full font-semibold shadow-lg hover:scale-105 transition"
-                >
-                    Organizer Login
-                </Link>
-            </nav>
-
-            {/* Hero Section */}
-            <section className="flex flex-col items-center text-center px-6 py-24 relative">
-
-                <div className="absolute w-[500px] h-[500px] bg-[#00E676] blur-[180px] opacity-10 rounded-full"></div>
-
-                <h2 className="text-4xl md:text-6xl font-extrabold leading-tight relative z-10">
-                    Host & Manage
-                    <br />
-                    <span className="bg-gradient-to-r from-[#FDB913] to-[#00E676] bg-clip-text text-transparent">
-                        Your Own Cricket Auction
-                    </span>
-                </h2>
-
-                <p className="mt-6 text-gray-300 max-w-2xl text-lg relative z-10">
-                    BidArena gives organizers complete control to create auctions,
-                    register teams, manage owners, and upload player lists —
-                    all from one powerful dashboard.
-                </p>
-
-                <div className="mt-10 relative z-10">
+                <div className="flex items-center gap-6">
+                    <Link
+                        to="/login"
+                        className="text-gray-300 hover:text-yellow-400 transition duration-300"
+                    >
+                        Login
+                    </Link>
                     <Link
                         to="/register"
-                        className="bg-gradient-to-r from-[#00E676] to-[#00C853] px-10 py-4 rounded-full font-bold text-black shadow-xl hover:scale-105 transition"
+                        className="bg-yellow-400 text-black px-5 py-2 rounded-xl font-semibold hover:bg-yellow-300 transition duration-300"
                     >
-                        Create Organizer Account
+                        Register Organizer
                     </Link>
                 </div>
+            </nav>
+
+            <section className="flex flex-col lg:flex-row items-center justify-between px-10 lg:px-24 py-20">
+
+                <div className="max-w-xl">
+                    <h2 className="text-4xl lg:text-5xl font-bold leading-tight">
+                        Smart Cricket Tournament
+                        <span className="text-yellow-400"> Management Platform</span>
+                    </h2>
+
+                    <p className="text-gray-400 mt-6 text-lg">
+                        Organize tournaments, manage teams, assign captains,
+                        and control player registrations — all from one
+                        professional dashboard.
+                    </p>
+
+                    <div className="flex gap-4 mt-8">
+                        <Link
+                            to="/register"
+                            className="bg-yellow-400 text-black px-6 py-3 rounded-2xl font-semibold hover:bg-yellow-300 transition duration-300 shadow-lg shadow-yellow-500/20"
+                        >
+                            Get Started
+                        </Link>
+
+                        <Link
+                            to="/login"
+                            className="border border-yellow-400 px-6 py-3 rounded-2xl text-yellow-400 hover:bg-yellow-400 hover:text-black transition duration-300"
+                        >
+                            Login
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="mt-14 lg:mt-0">
+                    <div className="bg-[#111827] p-6 rounded-3xl shadow-2xl shadow-black/40 backdrop-blur-lg border border-gray-700 w-[350px]">
+                        <h3 className="text-lg font-semibold text-yellow-400 mb-4">
+                            Dashboard Preview
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="bg-[#1F2937] p-3 rounded-lg flex justify-between">
+                                <span className="text-gray-400">Total Teams</span>
+                                <span className="font-bold">12</span>
+                            </div>
+                            <div className="bg-[#1F2937] p-3 rounded-lg flex justify-between">
+                                <span className="text-gray-400">Registered Players</span>
+                                <span className="font-bold">156</span>
+                            </div>
+                            <div className="bg-[#1F2937] p-3 rounded-lg flex justify-between">
+                                <span className="text-gray-400">Active Tournaments</span>
+                                <span className="font-bold">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
-            {/* Features Section */}
-            <section className="px-6 md:px-14 py-20 bg-[#001F54]">
-                <h3 className="text-3xl md:text-4xl font-bold text-center mb-14">
-                    Organizer Dashboard Features
-                </h3>
+            <section className="px-10 lg:px-24 py-16 bg-[#111827]">
+                <h2 className="text-3xl font-bold text-center mb-12">
+                    Platform Features
+                </h2>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="bg-[#1F2937] p-8 rounded-2xl border border-gray-700 hover:border-yellow-400 transition duration-300">
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">
+                            Organizer Control
+                        </h3>
+                        <p className="text-gray-400">
+                            Create tournaments, manage teams, assign captains
+                            and handle player registrations seamlessly.
+                        </p>
+                    </div>
 
-                    {[
-                        "Create & Configure Auction",
-                        "Add Teams & Team Owners",
-                        "Upload Player List",
-                        "Control Live Bidding",
-                    ].map((item, i) => (
-                        <div
-                            key={i}
-                            className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-xl hover:-translate-y-2 transition"
-                        >
-                            <h4 className="text-lg font-bold text-[#FDB913]">
-                                {item}
-                            </h4>
-                        </div>
-                    ))}
+                    <div className="bg-[#1F2937] p-8 rounded-2xl border border-gray-700 hover:border-yellow-400 transition duration-300">
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">
+                            Team & Player Management
+                        </h3>
+                        <p className="text-gray-400">
+                            Structured team allocation, role-based players,
+                            and real-time management dashboard.
+                        </p>
+                    </div>
 
+                    <div className="bg-[#1F2937] p-8 rounded-2xl border border-gray-700 hover:border-yellow-400 transition duration-300">
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">
+                            Secure Role Access
+                        </h3>
+                        <p className="text-gray-400">
+                            Controlled access for Organizer, Captain,
+                            and Player with secure authentication.
+                        </p>
+                    </div>
                 </div>
             </section>
 
-            {/* CTA */}
-            <section className="py-20 text-center bg-gradient-to-r from-[#FDB913] to-[#FF6F00] text-black">
-                <h3 className="text-3xl font-bold">
-                    Start Organizing Your Auction Today
-                </h3>
-
+            <section className="px-10 lg:px-24 py-20 text-center">
+                <h2 className="text-3xl font-bold">
+                    Ready to Organize Your Tournament Professionally?
+                </h2>
                 <Link
                     to="/register"
-                    className="inline-block mt-8 bg-black text-white px-10 py-4 rounded-full font-semibold shadow-lg hover:scale-105 transition"
+                    className="inline-block mt-8 bg-yellow-400 text-black px-8 py-3 rounded-2xl font-semibold hover:bg-yellow-300 transition duration-300 shadow-lg shadow-yellow-500/20"
                 >
                     Register as Organizer
                 </Link>
             </section>
 
-            <footer className="text-center py-6 text-gray-400 border-t border-white/10">
-                © {new Date().getFullYear()} BidArena Organizer Platform
+            {/* ================= FOOTER ================= */}
+            <footer className="text-center py-6 border-t border-gray-800 text-gray-500 text-sm">
+                © 2026 BidArena. All rights reserved.
             </footer>
         </div>
     );
-};
-
-export default Home;
+}

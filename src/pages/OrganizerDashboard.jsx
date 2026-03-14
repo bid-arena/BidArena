@@ -1,80 +1,177 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer,
+    CartesianGrid
+} from "recharts";
+import Sidebar from "../components/layout/Sidebar";
 
 const OrganizerDashboard = () => {
+
+    const [dashboard, setDashboard] = useState(null);
+
+    useEffect(() => {
+
+        const fetchDashboard = async () => {
+            try {
+
+                const token = localStorage.getItem("token");
+
+                const res = await axios.get(
+                    "http://localhost:5000/api/users/dashboard",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                console.log(res.data.data);
+
+                setDashboard(res.data.data);
+
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        fetchDashboard();
+
+    }, []);
+
+    if (!dashboard) {
+        return (
+            <div className="text-white p-10 text-xl">
+                Loading Dashboard...
+            </div>
+        );
+    }
+
+    const stats = dashboard.stats;
+
+    const graphData = [
+        { month: "Jan", players: 10 },
+        { month: "Feb", players: 25 },
+        { month: "Mar", players: 40 },
+        { month: "Apr", players: 60 },
+        { month: "May", players: 80 },
+        { month: "Jun", players: 120 }
+    ];
+
     return (
-        <div className="min-h-screen bg-[#0A0F2C] flex">
+        <div className="min-h-screen flex bg-[#0A0F2C]">
 
             {/* Sidebar */}
-            <aside className="w-64 bg-[#001F54] p-6 hidden md:block">
-                <h2 className="text-2xl font-bold text-[#FDB913] mb-10">
-                    BidArena
-                </h2>
+            <Sidebar />
 
-                <nav className="space-y-6 text-white">
-                    <p className="hover:text-[#FDB913] cursor-pointer transition">
-                        Dashboard
-                    </p>
-                    <p className="hover:text-[#FDB913] cursor-pointer transition">
-                        Teams
-                    </p>
-                    <p className="hover:text-[#FDB913] cursor-pointer transition">
-                        Players
-                    </p>
-                    <p className="hover:text-[#FDB913] cursor-pointer transition">
-                        Auctions
-                    </p>
-                </nav>
-            </aside>
+            {/* Main */}
 
-            {/* Main Content */}
             <main className="flex-1 p-8">
 
                 <h1 className="text-3xl font-bold text-white mb-8">
-                    Welcome Organizer 👋
+                    Welcome {dashboard.name} 👋
                 </h1>
 
-                {/* Stats Cards */}
+                {/* Stats */}
+
                 <div className="grid md:grid-cols-3 gap-6">
 
-                    <div className="bg-[#0F1E4D] p-6 rounded-2xl border border-white/10">
-                        <h3 className="text-[#B0B8D1] text-sm">Total Teams</h3>
-                        <p className="text-3xl font-bold text-[#FDB913] mt-3">0</p>
+                    <div className="bg-[#0F1E4D] p-6 rounded-xl border border-white/10">
+
+                        <p className="text-gray-400 text-sm">
+                            Total Teams
+                        </p>
+
+                        <h2 className="text-3xl text-[#FDB913] font-bold mt-3">
+                            {stats.teams}
+                        </h2>
+
                     </div>
 
-                    <div className="bg-[#0F1E4D] p-6 rounded-2xl border border-white/10">
-                        <h3 className="text-[#B0B8D1] text-sm">Registered Players</h3>
-                        <p className="text-3xl font-bold text-[#00E676] mt-3">0</p>
+                    <div className="bg-[#0F1E4D] p-6 rounded-xl border border-white/10">
+
+                        <p className="text-gray-400 text-sm">
+                            Players
+                        </p>
+
+                        <h2 className="text-3xl text-[#00E676] font-bold mt-3">
+                            {stats.players}
+                        </h2>
+
                     </div>
 
-                    <div className="bg-[#0F1E4D] p-6 rounded-2xl border border-white/10">
-                        <h3 className="text-[#B0B8D1] text-sm">Active Auctions</h3>
-                        <p className="text-3xl font-bold text-white mt-3">0</p>
+                    <div className="bg-[#0F1E4D] p-6 rounded-xl border border-white/10">
+
+                        <p className="text-gray-400 text-sm">
+                            Active Auctions
+                        </p>
+
+                        <h2 className="text-3xl text-white font-bold mt-3">
+                            {stats.auctions}
+                        </h2>
+
                     </div>
+
+                </div>
+
+                {/* Graph Section */}
+
+                <div className="mt-12 bg-[#0F1E4D] p-6 rounded-xl">
+
+                    <h2 className="text-xl text-white mb-6">
+                        Player Registrations
+                    </h2>
+
+                    <ResponsiveContainer width="100%" height={300}>
+
+                        <LineChart data={graphData}>
+
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1f2a5a" />
+
+                            <XAxis dataKey="month" stroke="#fff" />
+
+                            <YAxis stroke="#fff" />
+
+                            <Tooltip />
+
+                            <Line
+                                type="monotone"
+                                dataKey="players"
+                                stroke="#FDB913"
+                                strokeWidth={3}
+                            />
+
+                        </LineChart>
+
+                    </ResponsiveContainer>
 
                 </div>
 
                 {/* Quick Actions */}
-                <div className="mt-10">
-                    <h2 className="text-xl text-white font-semibold mb-6">
-                        Quick Actions
-                    </h2>
 
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <button className="bg-gradient-to-r from-[#00E676] to-[#00C853] text-black font-semibold py-3 rounded-xl hover:scale-105 transition">
-                            Add Team
-                        </button>
+                <div className="mt-10 grid md:grid-cols-3 gap-6">
 
-                        <button className="bg-[#FDB913] text-black font-semibold py-3 rounded-xl hover:scale-105 transition">
-                            Add Player
-                        </button>
+                    <button className="bg-[#00E676] text-black py-3 rounded-lg font-semibold hover:scale-105 transition">
+                        Add Team
+                    </button>
 
-                        <button className="bg-[#0F1E4D] border border-[#FDB913] text-[#FDB913] font-semibold py-3 rounded-xl hover:bg-[#FDB913] hover:text-black transition">
-                            Start Auction
-                        </button>
-                    </div>
+                    <button className="bg-[#FDB913] text-black py-3 rounded-lg font-semibold hover:scale-105 transition">
+                        Add Player
+                    </button>
+
+                    <button className="border border-[#FDB913] text-[#FDB913] py-3 rounded-lg font-semibold hover:bg-[#FDB913] hover:text-black transition">
+                        Start Auction
+                    </button>
+
                 </div>
 
             </main>
+
         </div>
     );
 };

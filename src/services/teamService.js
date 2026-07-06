@@ -36,3 +36,24 @@ export const deleteTeam = async (id) => {
 
     return res.data;
 };
+
+export const getTeamById = async (id) => {
+    const res = await axios.get(`${API}/teams/${id}`, {
+        headers: {
+            Authorization: `Bearer ${getToken()}`
+        }
+    });
+
+    return res.data.data;
+};
+
+export const updateTeam = async (id, data) => {
+    const res = await axios.put(`${API}/teams/${id}`, data, {
+        headers: {
+            Authorization: `Bearer ${getToken()}`,
+            "Content-Type": "multipart/form-data"
+        }
+    });
+
+    return res.data.data;
+};

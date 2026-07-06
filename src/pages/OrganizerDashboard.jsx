@@ -1,278 +1,616 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    CartesianGrid,
-} from "recharts";
+import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import { Link, useNavigate } from "react-router-dom";
-import { FaUsers, FaLayerGroup, FaGavel, FaTrophy } from "react-icons/fa";
+import {
+    Trophy,
+    Users,
+    User,
+    IndianRupee,
+    Plus,
+    Gavel,
+    ChevronRight,
+    TrendingUp,
+    Calendar,
+    Bell,
+    LogOut,
+    Settings,
+    RefreshCw,
+    Flame,
+    Clock,
+    AlertTriangle,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import { getDashboardStats, logoutUser } from "../services/dashboardService";
 
+/* ─── helpers ─────────────────────────────────────────────── */
+const formatCurrency = (n) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+    }).format(n || 0);
+
+const formatDate = (d) =>
+    d
+        ? new Date(d).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        })
+        : "—";
+
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+};
+
+const STATUS_STYLES = {
+    UPCOMING:
+        "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    ONGOING:
+        "bg-green-500/10 text-green-400 border-green-500/20",
+    COMPLETED:
+        "bg-gray-500/10 text-gray-400 border-gray-500/20",
+};
+
+/* ─── Stat Tile ────────────────────────────────────────────── */
+const StatTile = ({ label, value, sub, icon: Icon, color, to }) => (
+    <Link
+        to={to || "#"}
+        className="group bg-[#080E27] border border-white/5 rounded-2xl p-5 flex flex-col justify-between hover:border-white/10 hover:bg-[#0F1B3D] transition-all duration-300 hover:shadow-lg hover:shadow-black/20"
+    >
+        <div className="flex items-center justify-between mb-4">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                {label}
+            </span>
+            <div
+                className={`p-2 rounded-xl border ${color.bg} ${color.border} ${color.text}`}
+            >
+                <Icon size={16} />
+            </div>
+        </div>
+        <div>
+            <h3 className={`text-2xl font-black ${color.text}`}>{value}</h3>
+            {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
+        </div>
+        <div className="mt-3 flex items-center gap-1 text-xs text-gray-600 group-hover:text-gray-400 transition-colors">
+            View all <ChevronRight size={12} />
+        </div>
+    </Link>
+);
+
+/* ─── Quick Action Card ────────────────────────────────────── */
+const ActionCard = ({ to, icon: Icon, label, desc, color }) => (
+    <Link
+        to={to}
+        className={`group flex items-center gap-4 p-4 rounded-2xl border bg-[#080E27] hover:bg-[#0F1B3D] transition-all duration-300 border-white/5 hover:border-white/10`}
+    >
+        <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color.bg} ${color.border} ${color.text} border`}
+        >
+            <Icon size={20} />
+        </div>
+        <div className="min-w-0">
+            <h4 className="font-bold text-sm text-white">{label}</h4>
+            <p className="text-xs text-gray-500 truncate">{desc}</p>
+        </div>
+        <ChevronRight
+            size={16}
+            className="ml-auto text-gray-600 group-hover:text-gray-300 group-hover:translate-x-0.5 transition-all shrink-0"
+        />
+    </Link>
+);
+
+/* ─── Profile Dropdown ────────────────────────────────────── */
+const ProfileDropdown = ({ user, onLogout, onClose }) => {
+    const initials = user?.name
+        ? user.name
+            .split(" ")
+            .map((w) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2)
+        : "U";
+
+    return (
+        <div className="absolute right-0 top-full mt-2 w-64 bg-[#0F1B3D] border border-white/10 rounded-2xl shadow-2xl shadow-black/40 z-50 overflow-hidden">
+            {/* User info */}
+            <div className="p-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FDB913] to-amber-600 flex items-center justify-center text-black font-black text-sm shrink-0">
+                        {initials}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-bold text-white text-sm truncate">
+                            {user?.name || "User"}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                            {user?.email || ""}
+                        </p>
+                        <span className="inline-flex mt-1 items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FDB913]/10 text-[#FDB913] border border-[#FDB913]/20">
+                            {user?.role || "ORGANIZER"}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-2">
+                <button
+                    onClick={onClose}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:bg-white/5 hover:text-white transition"
+                >
+                    <Settings size={16} className="text-gray-500" />
+                    Account Settings
+                </button>
+
+                <button
+                    onClick={onLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition mt-1"
+                >
+                    <LogOut size={16} />
+                    Logout
+                </button>
+            </div>
+        </div>
+    );
+};
+
+/* ═══════════════════════════════════════════════════════════ */
 const OrganizerDashboard = () => {
-    const [dashboard, setDashboard] = useState(null);
-    const [tournaments, setTournaments] = useState([]);
-    const [teams, setTeams] = useState([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const dropdownRef = useRef(null);
+
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [profileOpen, setProfileOpen] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+
+    const rawUser = localStorage.getItem("user");
+    const user = rawUser ? JSON.parse(rawUser) : null;
+    const initials = user?.name
+        ? user.name
+            .split(" ")
+            .map((w) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2)
+        : "U";
+
+    const load = async (silent = false) => {
+        if (!silent) setLoading(true);
+        else setRefreshing(true);
+        try {
+            const data = await getDashboardStats();
+            setStats(data);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-
-                // Dashboard stats
-                const dashboardRes = await axios.get(
-                    "http://localhost:5000/api/users/dashboard",
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                setDashboard(dashboardRes.data.data);
-
-                // Fetch tournaments
-                const tournamentsRes = await axios.get(
-                    "http://localhost:5000/api/tournaments",
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                setTournaments(tournamentsRes.data.data);
-
-                // Fetch teams
-                const teamsRes = await axios.get(
-                    "http://localhost:5000/api/teams/organizer",
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                setTeams(teamsRes.data.data);
-            } catch (err) {
-                console.error("Error fetching dashboard data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
+        load();
     }, []);
 
-    if (loading || !dashboard) {
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handler = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setProfileOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    // Opens confirm modal from profile dropdown
+    const handleLogout = () => {
+        setProfileOpen(false);
+        setLogoutConfirmOpen(true);
+    };
+
+    // Runs actual logout after confirmation
+    const confirmLogout = async () => {
+        setLogoutConfirmOpen(false);
+        await logoutUser();
+        toast.success("Logged out successfully");
+        navigate("/login");
+    };
+
+    /* ── Loading skeleton ── */
+    if (loading) {
         return (
-            <div className="text-white p-10 text-xl">
-                Loading Dashboard...
+            <div className="min-h-screen flex bg-[#050B1A] text-white">
+                <Sidebar />
+                <main className="flex-1 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-[#FDB913] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-gray-500 text-sm">Loading dashboard…</p>
+                    </div>
+                </main>
             </div>
         );
     }
 
-    const stats = dashboard.stats || {};
-
-    // Example graphData dynamically generated from stats.monthlyPlayers if available
-    const graphData = stats.monthlyPlayers || [
-        { month: "Jan", players: 10 },
-        { month: "Feb", players: 25 },
-        { month: "Mar", players: 40 },
-    ];
-
-    const cardData = [
-        {
-            title: "Total Teams",
-            value: stats.teams || 0,
-            color: "text-[#FDB913]",
-            icon: <FaLayerGroup size={30} />,
-        },
-        {
-            title: "Players",
-            value: stats.players || 0,
-            color: "text-[#00E676]",
-            icon: <FaUsers size={30} />,
-        },
-        {
-            title: "Active Auctions",
-            value: stats.auctions || 0,
-            color: "text-white",
-            icon: <FaGavel size={30} />,
-        },
-        {
-            title: "Tournaments",
-            value: stats.tournaments || 0,
-            color: "text-[#FF6B6B]",
-            icon: <FaTrophy size={30} />,
-        },
-    ];
+    const now = new Date().toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
 
     return (
-        <div className="min-h-screen flex bg-[#0A0F2C] text-white">
-            {/* Sidebar */}
+        <div className="min-h-screen flex flex-col md:flex-row bg-[#050B1A] text-white">
             <Sidebar />
 
-            {/* Main Content */}
-            <main className="flex-1 p-8">
-                <h1 className="text-3xl font-bold mb-8">
-                    Welcome {dashboard.name} 👋
-                </h1>
+            <main className="flex-1 overflow-y-auto">
+                {/* ── TOP BAR ── */}
+                <header className="sticky top-0 z-30 bg-[#050B1A]/80 backdrop-blur-xl border-b border-white/5 px-6 md:px-10 py-4 flex items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-lg md:text-xl font-black text-white leading-none">
+                            {getGreeting()},{" "}
+                            <span className="text-[#FDB913]">
+                                {user?.name?.split(" ")[0] || "Organizer"}
+                            </span>{" "}
+                            👋
+                        </h1>
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                            <Calendar size={11} /> {now}
+                        </p>
+                    </div>
 
-                {/* Stats Cards */}
-                <div className="grid md:grid-cols-4 gap-6 mb-10">
-                    {cardData.map((card, idx) => (
-                        <div
-                            key={idx}
-                            className="bg-[#0F1E4D] p-6 rounded-xl border border-white/10 flex items-center gap-4 hover:shadow-xl transition"
+                    <div className="flex items-center gap-3">
+                        {/* Refresh */}
+                        <button
+                            onClick={() => load(true)}
+                            disabled={refreshing}
+                            title="Refresh data"
+                            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 transition"
                         >
-                            <div className="bg-white/10 p-3 rounded-full">
-                                {card.icon}
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">{card.title}</p>
-                                <h2 className={`text-3xl font-bold mt-2 ${card.color}`}>
-                                    {card.value}
-                                </h2>
+                            <RefreshCw
+                                size={16}
+                                className={refreshing ? "animate-spin" : ""}
+                            />
+                        </button>
+
+                        {/* Notifications placeholder */}
+                        <button className="relative p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 transition">
+                            <Bell size={16} />
+                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#FDB913] rounded-full" />
+                        </button>
+
+                        {/* Profile avatar */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setProfileOpen((p) => !p)}
+                                className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl border border-white/10 hover:border-white/20 bg-white/3 hover:bg-white/5 transition"
+                            >
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FDB913] to-amber-600 flex items-center justify-center text-black text-xs font-black">
+                                    {initials}
+                                </div>
+                                <div className="hidden sm:block text-left">
+                                    <p className="text-xs font-bold text-white leading-none">
+                                        {user?.name?.split(" ")[0] || "User"}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 mt-0.5 capitalize">
+                                        {user?.role?.toLowerCase()}
+                                    </p>
+                                </div>
+                            </button>
+
+                            {profileOpen && (
+                                <ProfileDropdown
+                                    user={user}
+                                    onLogout={handleLogout}
+                                    onClose={() => setProfileOpen(false)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
+                    {/* ── STAT TILES ── */}
+                    <section>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                                Overview
+                            </h2>
+                            <div className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
+                                <TrendingUp size={11} /> Live Data
                             </div>
                         </div>
-                    ))}
-                </div>
 
-                {/* Player Registrations Graph */}
-                <div className="bg-[#0F1E4D] p-6 rounded-xl mb-10">
-                    <h2 className="text-xl mb-6">Player Registrations (Monthly)</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={graphData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1f2a5a" />
-                            <XAxis dataKey="month" stroke="#fff" />
-                            <YAxis stroke="#fff" />
-                            <Tooltip />
-                            <Line
-                                type="monotone"
-                                dataKey="players"
-                                stroke="#FDB913"
-                                strokeWidth={3}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatTile
+                                label="Tournaments"
+                                value={stats?.totalTournaments ?? 0}
+                                sub="Total created"
+                                icon={Trophy}
+                                to="/tournaments"
+                                color={{
+                                    bg: "bg-yellow-500/10",
+                                    border: "border-yellow-500/20",
+                                    text: "text-yellow-400",
+                                }}
                             />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
+                            <StatTile
+                                label="Teams"
+                                value={stats?.totalTeams ?? 0}
+                                sub="Registered teams"
+                                icon={Users}
+                                to="/teams"
+                                color={{
+                                    bg: "bg-blue-500/10",
+                                    border: "border-blue-500/20",
+                                    text: "text-blue-400",
+                                }}
+                            />
+                            <StatTile
+                                label="Players"
+                                value={stats?.totalPlayers ?? 0}
+                                sub="In auction pool"
+                                icon={User}
+                                to="/players"
+                                color={{
+                                    bg: "bg-purple-500/10",
+                                    border: "border-purple-500/20",
+                                    text: "text-purple-400",
+                                }}
+                            />
+                            <StatTile
+                                label="Total Purse"
+                                value={formatCurrency(stats?.totalPurse)}
+                                sub="Across all teams"
+                                icon={IndianRupee}
+                                color={{
+                                    bg: "bg-green-500/10",
+                                    border: "border-green-500/20",
+                                    text: "text-green-400",
+                                }}
+                            />
+                        </div>
+                    </section>
 
-                {/* Quick Actions */}
-                <div className="grid md:grid-cols-3 gap-6 mb-10">
-                    <Link
-                        to="/teams/add"
-                        className="bg-[#00E676] text-black py-3 rounded-lg font-semibold hover:scale-105 transition text-center"
-                    >
-                        Add Team
-                    </Link>
-                    <Link
-                        to="/players/add"
-                        className="bg-[#FDB913] text-black py-3 rounded-lg font-semibold hover:scale-105 transition text-center"
-                    >
-                        Add Player
-                    </Link>
-                    <Link
-                        to="/auctions/start"
-                        className="border border-[#FDB913] text-[#FDB913] py-3 rounded-lg font-semibold hover:bg-[#FDB913] hover:text-black transition text-center"
-                    >
-                        Start Auction
-                    </Link>
-                </div>
+                    {/* ── QUICK ACTIONS ── */}
+                    <section>
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                            Quick Actions
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <ActionCard
+                                to="/tournaments/create"
+                                icon={Trophy}
+                                label="New Tournament"
+                                desc="Create a tournament"
+                                color={{
+                                    bg: "bg-yellow-500/10",
+                                    border: "border-yellow-500/20",
+                                    text: "text-yellow-400",
+                                }}
+                            />
+                            <ActionCard
+                                to="/teams/add"
+                                icon={Users}
+                                label="Add Team"
+                                desc="Register a new team"
+                                color={{
+                                    bg: "bg-blue-500/10",
+                                    border: "border-blue-500/20",
+                                    text: "text-blue-400",
+                                }}
+                            />
+                            <ActionCard
+                                to="/players/add"
+                                icon={User}
+                                label="Add Player"
+                                desc="Add to auction pool"
+                                color={{
+                                    bg: "bg-purple-500/10",
+                                    border: "border-purple-500/20",
+                                    text: "text-purple-400",
+                                }}
+                            />
+                            <ActionCard
+                                to="/auctions"
+                                icon={Gavel}
+                                label="Start Auction"
+                                desc="Launch live bidding"
+                                color={{
+                                    bg: "bg-red-500/10",
+                                    border: "border-red-500/20",
+                                    text: "text-red-400",
+                                }}
+                            />
+                        </div>
+                    </section>
 
-                {/* Tournaments Table */}
-                <div className="bg-[#0F1E4D] rounded-xl p-6 mb-10">
-                    <h2 className="text-xl mb-4">Your Tournaments</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-[#001F54]">
-                                <tr>
-                                    <th className="p-4">Name</th>
-                                    <th className="p-4">Location</th>
-                                    <th className="p-4">Date</th>
-                                    <th className="p-4">Purse</th>
-                                    <th className="p-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tournaments.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-4 text-center">
-                                            No tournaments found
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    tournaments.map((t) => (
-                                        <tr key={t.id} className="border-t border-white/10">
-                                            <td className="p-4">{t.name}</td>
-                                            <td className="p-4">{t.location}</td>
-                                            <td className="p-4">
-                                                {new Date(t.date).toLocaleDateString()}
-                                            </td>
-                                            <td className="p-4">
-                                                ₹{t.purseAmount.toLocaleString()}
-                                            </td>
-                                            <td className="p-4 flex gap-2">
-                                                <button
-                                                    onClick={() =>
-                                                        navigate(`/tournaments/edit/${t.id}`)
-                                                    }
-                                                    className="bg-blue-500 px-3 py-1 rounded hover:scale-105 transition"
+                    {/* ── RECENT TABLES ── */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {/* Recent Tournaments */}
+                        <section className="bg-[#080E27] border border-white/5 rounded-2xl overflow-hidden">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <Flame size={16} className="text-yellow-400" />
+                                    Recent Tournaments
+                                </h3>
+                                <Link
+                                    to="/tournaments"
+                                    className="text-xs text-[#FDB913] hover:underline flex items-center gap-1"
+                                >
+                                    View all <ChevronRight size={12} />
+                                </Link>
+                            </div>
+
+                            {!stats?.recentTournaments?.length ? (
+                                <div className="py-12 text-center text-gray-600 text-sm">
+                                    No tournaments yet.{" "}
+                                    <Link
+                                        to="/tournaments/create"
+                                        className="text-[#FDB913] hover:underline"
+                                    >
+                                        Create one
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-white/5">
+                                    {stats.recentTournaments.map((t) => (
+                                        <Link
+                                            key={t.id}
+                                            to={`/tournaments/${t.id}`}
+                                            className="flex items-center justify-between px-6 py-4 hover:bg-white/3 transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+                                                    <Trophy size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-200 group-hover:text-white transition">
+                                                        {t.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                                        <Clock size={10} />
+                                                        {formatDate(t.date || t.createdAt)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span
+                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_STYLES[t.status] ||
+                                                        STATUS_STYLES.UPCOMING
+                                                        }`}
                                                 >
-                                                    Edit
-                                                </button>
-                                                <button className="bg-red-500 px-3 py-1 rounded hover:scale-105 transition">
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                                    {t.status || "UPCOMING"}
+                                                </span>
+                                                <p className="text-xs text-green-400 font-bold mt-1">
+                                                    {formatCurrency(t.purseAmount)}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
 
-                {/* Teams Table */}
-                <div className="bg-[#0F1E4D] rounded-xl p-6">
-                    <h2 className="text-xl mb-4">Your Teams</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-[#001F54]">
-                                <tr>
-                                    <th className="p-4">Logo</th>
-                                    <th className="p-4">Name</th>
-                                    <th className="p-4">Captain</th>
-                                    <th className="p-4">Tournament</th>
-                                    <th className="p-4">Purse</th>
-                                    <th className="p-4">Remaining</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {teams.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="p-4 text-center">
-                                            No teams found
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    teams.map((team) => (
-                                        <tr key={team.id} className="border-t border-white/10">
-                                            <td className="p-4">
-                                                <img
-                                                    src={team.logo}
-                                                    alt={team.name}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                />
-                                            </td>
-                                            <td className="p-4">{team.name}</td>
-                                            <td className="p-4">{team.captainName}</td>
-                                            <td className="p-4">{team.tournament?.name}</td>
-                                            <td className="p-4 text-green-400 font-bold">
-                                                ₹{team.purseAmount.toLocaleString()}
-                                            </td>
-                                            <td className="p-4 text-yellow-400 font-bold">
-                                                ₹{team.remainingPurse.toLocaleString()}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                        {/* Recent Teams */}
+                        <section className="bg-[#080E27] border border-white/5 rounded-2xl overflow-hidden">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <Users size={16} className="text-blue-400" />
+                                    Recent Teams
+                                </h3>
+                                <Link
+                                    to="/teams"
+                                    className="text-xs text-[#FDB913] hover:underline flex items-center gap-1"
+                                >
+                                    View all <ChevronRight size={12} />
+                                </Link>
+                            </div>
+
+                            {!stats?.recentTeams?.length ? (
+                                <div className="py-12 text-center text-gray-600 text-sm">
+                                    No teams yet.{" "}
+                                    <Link
+                                        to="/teams/add"
+                                        className="text-[#FDB913] hover:underline"
+                                    >
+                                        Add one
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-white/5">
+                                    {stats.recentTeams.map((team) => (
+                                        <div
+                                            key={team.id}
+                                            className="flex items-center justify-between px-6 py-4 hover:bg-white/3 transition"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {team.logo ? (
+                                                    <img
+                                                        src={team.logo}
+                                                        alt={team.name}
+                                                        className="w-9 h-9 rounded-full object-cover border border-white/10"
+                                                    />
+                                                ) : (
+                                                    <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-black">
+                                                        {team.name?.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-200">
+                                                        {team.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {team.captainName || "—"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs text-gray-500">
+                                                    {team.tournament?.name || "No tournament"}
+                                                </p>
+                                                <p className="text-sm font-black text-green-400 mt-0.5">
+                                                    {formatCurrency(team.purseAmount)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
                     </div>
+
+                    {/* ── FOOTER NOTE ── */}
+                    <p className="text-center text-xs text-gray-700 pb-4">
+                        BidArena &copy; {new Date().getFullYear()} — Organizer Portal
+                    </p>
                 </div>
             </main>
+
+            {/* ── Logout Confirmation Modal (Dashboard) ── */}
+            {logoutConfirmOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#0F1B3D] border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl shadow-black/60 relative overflow-hidden">
+                        <div className="absolute top-0 inset-x-0 h-1 bg-red-500 rounded-t-2xl" />
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-white text-base">Confirm Logout</h3>
+                                <p className="text-xs text-gray-400 mt-0.5">You will be signed out of your account.</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-gray-300 mb-6">
+                            Are you sure you want to logout? Any unsaved changes will be lost.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setLogoutConfirmOpen(false)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmLogout}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white transition shadow-lg shadow-red-500/20"
+                            >
+                                Yes, Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -35,6 +35,12 @@ const LoginForm = () => {
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
 
+            // Force password change check
+            if (user.isPasswordTemp) {
+                navigate("/force-change-password");
+                return;
+            }
+
             // Role-based Redirect
             switch (user.role) {
                 case "ADMIN":
@@ -45,6 +51,9 @@ const LoginForm = () => {
                     break;
                 case "CAPTAIN":
                     navigate("/captain-dashboard");
+                    break;
+                case "TEAM_OWNER":
+                    navigate("/owner-dashboard");
                     break;
                 case "PLAYER":
                     navigate("/player-dashboard");

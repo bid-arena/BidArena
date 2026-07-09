@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
-import { 
-    getTournamentById, 
-    updateTournament 
+import {
+    getTournamentById,
+    updateTournament
 } from "../../services/tournamentService";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { 
-    Trophy, 
-    MapPin, 
-    Calendar, 
-    IndianRupee, 
-    Users, 
-    ArrowLeft, 
-    Sparkles, 
+import {
+    Trophy,
+    MapPin,
+    Calendar,
+    IndianRupee,
+    Users,
+    ArrowLeft,
+    Sparkles,
     Loader2,
     AlertCircle
 } from "lucide-react";
@@ -21,7 +21,7 @@ import { toast } from "react-hot-toast";
 const EditTournament = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    
+
     const [loadingDetails, setLoadingDetails] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [form, setForm] = useState({
@@ -38,13 +38,13 @@ const EditTournament = () => {
         const fetchDetails = async () => {
             try {
                 const data = await getTournamentById(id);
-                
+
                 // Format date to YYYY-MM-DD for date input
                 let formattedDate = "";
                 if (data.date) {
                     formattedDate = new Date(data.date).toISOString().split('T')[0];
                 }
-                
+
                 setForm({
                     name: data.name || "",
                     location: data.location || "",
@@ -111,7 +111,7 @@ const EditTournament = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Final validation check
         if (Object.keys(errors).some(key => errors[key] && !errors[key].startsWith("Warning"))) {
             toast.error("Please resolve form errors before submitting.");

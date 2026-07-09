@@ -2,15 +2,15 @@ import React, { useEffect, useState } from "react";
 import { getTeams, deleteTeam } from "../../services/teamService";
 import Sidebar from "../../components/layout/Sidebar";
 import { Link } from "react-router-dom";
-import { 
-    Users, 
-    Trophy, 
-    Wallet, 
-    Search, 
-    Filter, 
-    Edit, 
-    Trash2, 
-    IndianRupee, 
+import {
+    Users,
+    Trophy,
+    Wallet,
+    Search,
+    Filter,
+    Edit,
+    Trash2,
+    IndianRupee,
     AlertTriangle,
     Eye,
     Plus,
@@ -69,7 +69,7 @@ const TeamsPage = () => {
     const filteredTeams = teams.filter((team) => {
         const matchSearch =
             team.name.toLowerCase().includes(search.toLowerCase()) ||
-            team.captainName.toLowerCase().includes(search.toLowerCase());
+            (team.ownerName && team.ownerName.toLowerCase().includes(search.toLowerCase()));
 
         const matchTournament =
             selectedTournament === "All" ||
@@ -195,7 +195,7 @@ const TeamsPage = () => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Search by team name or captain..."
+                                placeholder="Search by team name or owner..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0F1E4D]/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#FDB913] transition text-white placeholder-gray-500"
@@ -247,9 +247,9 @@ const TeamsPage = () => {
                                 const remainingPurse = team.remainingPurse || 0;
                                 const spentPurse = startingPurse - remainingPurse;
                                 const spentPercent = startingPurse > 0 ? (spentPurse / startingPurse) * 100 : 0;
-                                
+
                                 return (
-                                    <div 
+                                    <div
                                         key={team.id}
                                         className="bg-gradient-to-br from-[#0F1E4D]/40 to-[#08163A]/40 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:border-[#FDB913]/30 transition group relative overflow-hidden"
                                     >
@@ -260,8 +260,8 @@ const TeamsPage = () => {
                                             {/* Card Header */}
                                             <div className="flex items-center gap-4 mb-5">
                                                 {team.logo ? (
-                                                    <img 
-                                                        src={team.logo} 
+                                                    <img
+                                                        src={team.logo}
                                                         alt={team.name}
                                                         className="w-12 h-12 rounded-full object-cover border border-white/10"
                                                     />
@@ -276,7 +276,7 @@ const TeamsPage = () => {
                                                     </h3>
                                                     <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                                                         <User size={12} className="text-gray-500" />
-                                                        <span>Captain: {team.captainName}</span>
+                                                        <span>Owner: {team.ownerName}</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -309,8 +309,8 @@ const TeamsPage = () => {
                                                         </span>
                                                     </div>
                                                     <div className="w-full bg-[#001F54] rounded-full h-1.5 overflow-hidden">
-                                                        <div 
-                                                            className={`h-1.5 rounded-full transition-all duration-500 ${spentPercent >= 80 ? 'bg-red-500' : 'bg-green-400'}`} 
+                                                        <div
+                                                            className={`h-1.5 rounded-full transition-all duration-500 ${spentPercent >= 80 ? 'bg-red-500' : 'bg-green-400'}`}
                                                             style={{ width: `${Math.min(spentPercent, 100)}%` }}
                                                         />
                                                     </div>
@@ -320,21 +320,21 @@ const TeamsPage = () => {
 
                                         {/* Actions Footer */}
                                         <div className="flex gap-2.5 border-t border-white/5 pt-4">
-                                            <Link 
+                                            <Link
                                                 to={`/teams/${team.id}`}
                                                 className="flex-1 inline-flex items-center justify-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 py-2.5 rounded-lg text-xs font-bold transition"
                                             >
                                                 <Eye size={14} />
                                                 <span>View</span>
                                             </Link>
-                                            <Link 
+                                            <Link
                                                 to={`/teams/edit/${team.id}`}
                                                 className="inline-flex items-center justify-center p-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-[#FDB913] rounded-lg transition"
                                                 title="Edit Team"
                                             >
                                                 <Edit size={14} />
                                             </Link>
-                                            <button 
+                                            <button
                                                 onClick={() => openDeleteModal(team)}
                                                 className="inline-flex items-center justify-center p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg transition"
                                                 title="Delete Team"

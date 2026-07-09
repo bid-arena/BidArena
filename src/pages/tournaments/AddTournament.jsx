@@ -2,14 +2,14 @@ import React, { useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import { createTournament } from "../../services/tournamentService";
 import { useNavigate, Link } from "react-router-dom";
-import { 
-    Trophy, 
-    MapPin, 
-    Calendar, 
-    IndianRupee, 
-    Users, 
-    ArrowLeft, 
-    Sparkles, 
+import {
+    Trophy,
+    MapPin,
+    Calendar,
+    IndianRupee,
+    Users,
+    ArrowLeft,
+    Sparkles,
     Loader2,
     AlertCircle
 } from "lucide-react";
@@ -77,7 +77,7 @@ const AddTournament = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Final validation check
         if (Object.keys(errors).some(key => errors[key] && !errors[key].startsWith("Warning"))) {
             toast.error("Please resolve form errors before submitting.");

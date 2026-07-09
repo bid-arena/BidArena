@@ -11,7 +11,8 @@ import {
     X,
     AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { logoutUser } from "../../services/dashboardService";
 import { toast } from "react-hot-toast";
 
@@ -28,6 +29,7 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [teamTournamentId, setTeamTournamentId] = useState(null);
 
     const rawUser = localStorage.getItem("user");
     const user = rawUser ? JSON.parse(rawUser) : null;
@@ -40,42 +42,73 @@ const Sidebar = () => {
             .slice(0, 2)
         : "U";
 
+    useEffect(() => {
+        if (user?.role === "TEAM_OWNER") {
+            const fetchTeam = async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    if (!token) return;
+                    const res = await axios.get("http://localhost:5000/api/teams/owner/my-team", {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    if (res.data?.data?.tournamentId) {
+                        setTeamTournamentId(res.data.data.tournamentId);
+                    }
+                } catch (err) {
+                    console.error("Sidebar team fetch error:", err);
+                }
+            };
+            fetchTeam();
+        }
+    }, [user?.role]);
+
     const handleLogout = async () => {
         await logoutUser();
         toast.success("Logged out successfully");
         navigate("/login");
     };
 
-    const SidebarContent = () => (
-        <div className="flex flex-col h-full">
-            {/* Logo */}
-            <div className="flex items-center gap-3 px-6 py-7 border-b border-white/5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FDB913] to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                    <Gavel size={18} className="text-black" />
-                </div>
-                <span className="text-xl font-black text-white tracking-tight">
-                    Bid<span className="text-[#FDB913]">Arena</span>
-                </span>
-            </div>
+    const SidebarContent = () => {
+        const menuItems = user?.role === "TEAM_OWNER"
+            ? [
+                { to: "/owner-dashboard", label: "Overview", icon: LayoutDashboard },
+                ...(teamTournamentId ? [{ to: `/auctions/live/${teamTournamentId}`, label: "Live Auction", icon: Gavel }] : [])
+              ]
+            : NAV_ITEMS;
 
-            {/* Nav */}
-            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-3 mb-3">
-                    Main Menu
-                </p>
-                {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-                    const active =
-                        location.pathname === to ||
-                        (to !== "/organizer-dashboard" &&
-                            location.pathname.startsWith(to));
-                    return (
+        return (
+            <div className="flex flex-col h-full">
+                {/* Logo */}
+                <div className="flex items-center gap-3 px-6 py-7 border-b border-white/5">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FDB913] to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                        <Gavel size={18} className="text-black" />
+                    </div>
+                    <span className="text-xl font-black text-white tracking-tight">
+                        Bid<span className="text-[#FDB913]">Arena</span>
+                    </span>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-3 mb-3">
+                        Main Menu
+                    </p>
+                    {menuItems.map(({ to, label, icon: Icon }) => {
+                        const active =
+                            location.pathname === to ||
+                            (to !== "/organizer-dashboard" &&
+                                to !== "/owner-dashboard" &&
+                                location.pathname.startsWith(to));
+                        return (
                         <Link
                             key={to}
                             to={to}
                             onClick={() => setMobileOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group relative ${active
-                                    ? "bg-[#FDB913]/10 text-[#FDB913] border border-[#FDB913]/20"
-                                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                                ? "bg-[#FDB913]/10 text-[#FDB913] border border-[#FDB913]/20"
+                                : "text-gray-400 hover:text-white hover:bg-white/5"
                                 }`}
                         >
                             <Icon
@@ -123,6 +156,7 @@ const Sidebar = () => {
             </div>
         </div>
     );
+};
 
     return (
         <>

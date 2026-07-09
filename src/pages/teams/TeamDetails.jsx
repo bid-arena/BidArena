@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { 
-    getTeamById, 
-    deleteTeam 
+import {
+    getTeamById,
+    deleteTeam
 } from "../../services/teamService";
-import { 
-    Trophy, 
-    User, 
-    IndianRupee, 
-    Users, 
-    ArrowLeft, 
-    Edit, 
-    Trash2, 
-    AlertTriangle, 
+import {
+    Trophy,
+    User,
+    IndianRupee,
+    Users,
+    ArrowLeft,
+    Edit,
+    Trash2,
+    AlertTriangle,
     ShieldAlert,
     Clock,
     Plus,
     Tag,
+    Mail,
     Eye
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -25,7 +26,7 @@ import { toast } from "react-hot-toast";
 const TeamDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    
+
     const [team, setTeam] = useState(null);
     const [loading, setLoading] = useState(true);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -125,7 +126,7 @@ const TeamDetails = () => {
 
                         {/* QUICK ACTIONS */}
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <Link 
+                            <Link
                                 to={`/teams/edit/${team.id}`}
                                 className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-[#FDB913] border border-[#FDB913]/30 px-4 py-2.5 rounded-lg transition font-semibold text-sm"
                             >
@@ -133,7 +134,7 @@ const TeamDetails = () => {
                                 <span>Edit Profile</span>
                             </Link>
 
-                            <button 
+                            <button
                                 onClick={() => setDeleteModalOpen(true)}
                                 className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2.5 rounded-lg transition font-semibold text-sm"
                             >
@@ -150,9 +151,9 @@ const TeamDetails = () => {
 
                         <div className="flex flex-col sm:flex-row items-center gap-6">
                             {team.logo ? (
-                                <img 
-                                    src={team.logo} 
-                                    alt={team.name} 
+                                <img
+                                    src={team.logo}
+                                    alt={team.name}
                                     className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-[#FDB913] shadow-xl shrink-0"
                                 />
                             ) : (
@@ -166,18 +167,22 @@ const TeamDetails = () => {
                                     <Users size={12} className="text-[#FDB913]" />
                                     <span className="text-[10px] font-bold text-[#FDB913] uppercase tracking-wider">Team Arena</span>
                                 </div>
-                                
+
                                 <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-[#FDB913] bg-clip-text text-transparent uppercase tracking-tight">
                                     {team.name}
                                 </h1>
-                                
+
                                 <div className="flex flex-wrap justify-center sm:justify-start gap-x-6 gap-y-2 text-sm text-gray-400">
                                     <span className="flex items-center gap-1.5">
                                         <User size={16} className="text-blue-400 shrink-0" />
-                                        Captain: <strong className="text-gray-200">{team.captainName}</strong>
+                                        Owner: <strong className="text-gray-200">{team.ownerName}</strong>
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <Mail size={16} className="text-[#FDB913] shrink-0" />
+                                        Email: <strong className="text-gray-200">{team.ownerEmail}</strong>
                                     </span>
                                     {team.tournament && (
-                                        <Link 
+                                        <Link
                                             to={`/tournaments/${team.tournament.id}`}
                                             className="flex items-center gap-1.5 hover:text-white transition group"
                                         >
@@ -237,8 +242,8 @@ const TeamDetails = () => {
                                     {formatCurrency(spentPurse)} <span className="text-xs font-semibold text-gray-500">({spentPercent.toFixed(0)}%)</span>
                                 </h3>
                                 <div className="w-full bg-[#001F54] rounded-full h-1.5 mt-2 overflow-hidden">
-                                    <div 
-                                        className={`h-1.5 rounded-full ${spentPercent >= 80 ? 'bg-red-500' : 'bg-green-400'}`} 
+                                    <div
+                                        className={`h-1.5 rounded-full ${spentPercent >= 80 ? 'bg-red-500' : 'bg-green-400'}`}
                                         style={{ width: `${Math.min(spentPercent, 100)}%` }}
                                     />
                                 </div>
@@ -288,7 +293,7 @@ const TeamDetails = () => {
                             {activeTab === "roster" && (
                                 <div className="space-y-4">
                                     <h2 className="text-lg font-bold text-gray-300">Squad Roster</h2>
-                                    
+
                                     {rosterCount === 0 ? (
                                         <div className="py-12 text-center text-gray-500 text-sm">
                                             No players purchased during live bidding yet.

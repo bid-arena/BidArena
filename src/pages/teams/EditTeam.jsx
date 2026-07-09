@@ -15,6 +15,7 @@ import {
     Loader2,
     AlertCircle,
     IndianRupee,
+    Mail,
     Image as ImageIcon
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -30,7 +31,8 @@ const EditTeam = () => {
 
     const [form, setForm] = useState({
         name: "",
-        captainName: "",
+        ownerName: "",
+        ownerEmail: "",
         logo: null
     });
 
@@ -43,7 +45,8 @@ const EditTeam = () => {
                 setTeamData(data);
                 setForm({
                     name: data.name || "",
-                    captainName: data.captainName || "",
+                    ownerName: data.ownerName || "",
+                    ownerEmail: data.ownerEmail || "",
                     logo: null
                 });
                 if (data.logo) {
@@ -68,11 +71,19 @@ const EditTeam = () => {
                 delete tempErrors.name;
             }
         }
-        if (name === "captainName") {
+        if (name === "ownerName") {
             if (value && value.trim().length < 3) {
-                tempErrors.captainName = "Captain name must be at least 3 characters.";
+                tempErrors.ownerName = "Owner name must be at least 3 characters.";
             } else {
-                delete tempErrors.captainName;
+                delete tempErrors.ownerName;
+            }
+        }
+        if (name === "ownerEmail") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (value && !emailRegex.test(value)) {
+                tempErrors.ownerEmail = "Please enter a valid email address.";
+            } else {
+                delete tempErrors.ownerEmail;
             }
         }
         setErrors(tempErrors);
@@ -110,7 +121,8 @@ const EditTeam = () => {
         try {
             const formData = new FormData();
             formData.append("name", form.name);
-            formData.append("captainName", form.captainName);
+            formData.append("ownerName", form.ownerName);
+            formData.append("ownerEmail", form.ownerEmail);
 
             if (form.logo) {
                 formData.append("logo", form.logo);
@@ -215,29 +227,56 @@ const EditTeam = () => {
                                     )}
                                 </div>
 
-                                {/* CAPTAIN NAME */}
+                                {/* OWNER NAME */}
                                 <div className="space-y-2">
-                                    <label htmlFor="captainName" className="block text-sm font-semibold text-gray-300">
-                                        Captain Name <span className="text-[#FDB913]">*</span>
+                                    <label htmlFor="ownerName" className="block text-sm font-semibold text-gray-300">
+                                        Owner Name <span className="text-[#FDB913]">*</span>
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                             <User size={18} />
                                         </div>
                                         <input
-                                            id="captainName"
-                                            name="captainName"
+                                            id="ownerName"
+                                            name="ownerName"
                                             type="text"
                                             required
-                                            value={form.captainName}
-                                            placeholder="Captain Name"
+                                            value={form.ownerName}
+                                            placeholder="Owner Name"
                                             onChange={handleChange}
-                                            className={`w-full pl-10 pr-3 py-3 rounded-lg bg-[#001F54]/50 border ${errors.captainName ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:ring-[#FDB913]'} focus:outline-none focus:ring-2 transition text-white placeholder-gray-500`}
+                                            className={`w-full pl-10 pr-3 py-3 rounded-lg bg-[#001F54]/50 border ${errors.ownerName ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:ring-[#FDB913]'} focus:outline-none focus:ring-2 transition text-white placeholder-gray-500`}
                                         />
                                     </div>
-                                    {errors.captainName && (
+                                    {errors.ownerName && (
                                         <p className="text-red-400 text-xs flex items-center gap-1 mt-1">
-                                            <AlertCircle size={12} /> {errors.captainName}
+                                            <AlertCircle size={12} /> {errors.ownerName}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* OWNER EMAIL */}
+                                <div className="space-y-2">
+                                    <label htmlFor="ownerEmail" className="block text-sm font-semibold text-gray-300">
+                                        Owner Email <span className="text-[#FDB913]">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <Mail size={18} />
+                                        </div>
+                                        <input
+                                            id="ownerEmail"
+                                            name="ownerEmail"
+                                            type="email"
+                                            required
+                                            value={form.ownerEmail}
+                                            placeholder="Owner Email"
+                                            onChange={handleChange}
+                                            className={`w-full pl-10 pr-3 py-3 rounded-lg bg-[#001F54]/50 border ${errors.ownerEmail ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:ring-[#FDB913]'} focus:outline-none focus:ring-2 transition text-white placeholder-gray-500`}
+                                        />
+                                    </div>
+                                    {errors.ownerEmail && (
+                                        <p className="text-red-400 text-xs flex items-center gap-1 mt-1">
+                                            <AlertCircle size={12} /> {errors.ownerEmail}
                                         </p>
                                     )}
                                 </div>
@@ -339,7 +378,11 @@ const EditTeam = () => {
                                         </h3>
                                         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                                             <User size={12} className="text-gray-500" />
-                                            <span>Captain: {form.captainName.trim() || "Not set yet"}</span>
+                                            <span>Owner: {form.ownerName.trim() || "Not set yet"}</span>
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            <Mail size={10} className="text-gray-600" />
+                                            <span>{form.ownerEmail.trim() || "No email set"}</span>
                                         </p>
                                     </div>
                                 </div>

@@ -5,7 +5,7 @@ import {
     Trophy,
     Users,
     User,
-    IndianRupee,
+    Coins,
     Plus,
     Gavel,
     ChevronRight,
@@ -24,11 +24,7 @@ import { getDashboardStats, logoutUser } from "../services/dashboardService";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const formatCurrency = (n) =>
-    new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-    }).format(n || 0);
+    new Intl.NumberFormat("en-IN").format(n || 0) + " Pts";
 
 const formatDate = (d) =>
     d
@@ -366,10 +362,10 @@ const OrganizerDashboard = () => {
                                 }}
                             />
                             <StatTile
-                                label="Total Purse"
+                                label="Total Points"
                                 value={formatCurrency(stats?.totalPurse)}
                                 sub="Across all teams"
-                                icon={IndianRupee}
+                                icon={Coins}
                                 color={{
                                     bg: "bg-green-500/10",
                                     border: "border-green-500/20",
@@ -386,7 +382,7 @@ const OrganizerDashboard = () => {
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <ActionCard
-                                to="/tournaments/create"
+                                to="/tournaments/add"
                                 icon={Trophy}
                                 label="New Tournament"
                                 desc="Create a tournament"
@@ -453,7 +449,7 @@ const OrganizerDashboard = () => {
                                 <div className="py-12 text-center text-gray-600 text-sm">
                                     No tournaments yet.{" "}
                                     <Link
-                                        to="/tournaments/create"
+                                        to="/tournaments/add"
                                         className="text-[#FDB913] hover:underline"
                                     >
                                         Create one

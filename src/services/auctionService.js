@@ -107,3 +107,21 @@ export const placeBid = async (data) => {
     return res.data.data;
 };
 
+/**
+ * Get chronological bid logs for a tournament
+ * @param {string} tournamentId
+ */
+export const getAuctionBidHistory = async (tournamentId) => {
+    const res = await api.get(`/bids/tournament/${tournamentId}`);
+    return res.data.data;
+};
+
+/**
+ * Get aggregated auction stats for a tournament
+ * @param {string} tournamentId
+ */
+export const getAuctionStats = async (tournamentId) => {
+    const res = await api.get(`/auctions/tournament/${tournamentId}/stats`);
+    return res.data.data;
+};
+

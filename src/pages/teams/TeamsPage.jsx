@@ -10,7 +10,7 @@ import {
     Filter,
     Edit,
     Trash2,
-    IndianRupee,
+    Coins,
     AlertTriangle,
     Eye,
     Plus,
@@ -90,11 +90,7 @@ const TeamsPage = () => {
     const totalSpent = totalPurse - totalRemaining;
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     return (
@@ -110,7 +106,7 @@ const TeamsPage = () => {
                                 Teams Management
                             </h1>
                             <p className="text-gray-400 text-sm">
-                                Register and coordinate teams, check available bidding purse limits, and build league rosters.
+                                Register and coordinate teams, check available bidding points limits, and build league rosters.
                             </p>
                         </div>
                         <Link
@@ -154,32 +150,32 @@ const TeamsPage = () => {
                             </div>
                         </div>
 
-                        {/* TOTAL BUDGET ALLOCATED */}
+                        {/* TOTAL POINTS BUDGET */}
                         <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Starting Purse Sum</span>
-                                <div className="bg-green-500/10 p-1.5 rounded-lg border border-green-500/20 text-green-400">
-                                    <IndianRupee size={16} />
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Points Allocated</span>
+                                <div className="bg-[#FDB913]/10 p-1.5 rounded-lg border border-[#FDB913]/20 text-[#FDB913]">
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-green-400">
+                                <h3 className="text-2xl font-black text-white">
                                     {formatCurrency(totalPurse)}
                                 </h3>
                                 <p className="text-xs text-gray-500 mt-1">Allocated bidding capital</p>
                             </div>
                         </div>
 
-                        {/* REMAINING PURSE BUDGET */}
+                        {/* TOTAL POINTS REMAINING */}
                         <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Remaining Purse</span>
-                                <div className="bg-blue-500/10 p-1.5 rounded-lg border border-blue-500/20 text-blue-400">
-                                    <IndianRupee size={16} />
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Points Remaining</span>
+                                <div className="bg-green-500/10 p-1.5 rounded-lg border border-green-500/20 text-green-400">
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-blue-400">
+                                <h3 className="text-2xl font-black text-white">
                                     {formatCurrency(totalRemaining)}
                                 </h3>
                                 <p className="text-xs text-gray-500 mt-1">Available for bidding pools</p>
@@ -289,21 +285,21 @@ const TeamsPage = () => {
                                                 </div>
                                             )}
 
-                                            {/* Purse Details */}
+                                            {/* Points Details */}
                                             <div className="space-y-3 mb-6 bg-[#001F54]/30 rounded-xl p-4 border border-white/5">
                                                 <div className="flex justify-between text-xs">
-                                                    <span className="text-gray-400">Remaining Purse</span>
+                                                    <span className="text-gray-400">Remaining Points</span>
                                                     <span className="font-bold text-white">{formatCurrency(remainingPurse)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-xs">
-                                                    <span className="text-gray-400">Total Starting Purse</span>
+                                                    <span className="text-gray-400">Total Points Allocated</span>
                                                     <span className="font-bold text-gray-300">{formatCurrency(startingPurse)}</span>
                                                 </div>
 
                                                 {/* Spent Progress Bar */}
                                                 <div className="space-y-1 pt-1.5">
                                                     <div className="flex justify-between text-[10px]">
-                                                        <span className="text-gray-500 uppercase font-semibold">Purse Spent</span>
+                                                        <span className="text-gray-500 uppercase font-semibold">Points Spent</span>
                                                         <span className={`font-bold ${spentPercent >= 80 ? 'text-red-400' : 'text-green-400'}`}>
                                                             {spentPercent.toFixed(0)}%
                                                         </span>

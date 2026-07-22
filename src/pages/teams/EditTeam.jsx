@@ -14,7 +14,7 @@ import {
     Sparkles,
     Loader2,
     AlertCircle,
-    IndianRupee,
+    Coins,
     Mail,
     Image as ImageIcon
 } from "lucide-react";
@@ -143,11 +143,7 @@ const EditTeam = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     if (loadingDetails) {
@@ -404,7 +400,7 @@ const EditTeam = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-[#001F54]/40 p-3 rounded-lg border border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase font-semibold flex items-center gap-1">
-                                                <IndianRupee size={10} /> Starting Purse
+                                                <Coins size={10} /> Allocated Points
                                             </p>
                                             <p className="text-base font-extrabold text-green-400 mt-0.5">
                                                 {formatCurrency(startingPurse)}
@@ -413,9 +409,9 @@ const EditTeam = () => {
 
                                         <div className="bg-[#001F54]/40 p-3 rounded-lg border border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase font-semibold flex items-center gap-1">
-                                                <IndianRupee size={10} /> Spent Purse
+                                                <Coins size={10} /> Spent Points
                                             </p>
-                                            <p className="text-base font-bold text-gray-400 mt-0.5">
+                                            <p className="text-base font-bold text-gray-200 mt-0.5">
                                                 {formatCurrency(spentPurse)}
                                             </p>
                                         </div>

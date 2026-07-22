@@ -5,7 +5,7 @@ import {
     User,
     ArrowLeft,
     Trophy,
-    IndianRupee,
+    Coins,
     ShieldCheck,
     Loader2,
     Edit,
@@ -260,11 +260,11 @@ const EditPlayer = () => {
                                 {/* Base Price */}
                                 <div>
                                     <label htmlFor="base-price" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                        Base Price (₹)
+                                        Base Points
                                     </label>
                                     <div className="relative">
                                         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                                            <IndianRupee size={16} />
+                                            <Coins size={16} />
                                         </div>
                                         <input
                                             id="base-price"

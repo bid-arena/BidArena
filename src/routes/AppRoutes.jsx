@@ -49,10 +49,12 @@ const AppRoutes = () => {
                     <Route path="/teams/edit/:id" element={<EditTeam />} />
                     <Route path="/tournaments" element={<TournamentsPage />} />
                     <Route path="/tournaments/add" element={<AddTournament />} />
+                    <Route path="/tournaments/create" element={<AddTournament />} />
                     <Route path="/tournaments/:id" element={<TournamentDetails />} />
                     <Route path="/tournaments/edit/:id" element={<EditTournament />} />
                     <Route path="/players" element={<PlayersPage />} />
                     <Route path="/players/add" element={<AddPlayer />} />
+                    <Route path="/players/create" element={<AddPlayer />} />
                     <Route path="/players/edit/:id" element={<EditPlayer />} />
                     <Route path="/auctions" element={<AuctionsPage />} />
                 </Route>

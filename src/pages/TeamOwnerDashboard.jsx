@@ -6,7 +6,7 @@ import {
     Trophy,
     Users,
     User,
-    IndianRupee,
+    Coins,
     Clock,
     Tag,
     AlertTriangle,
@@ -17,17 +17,88 @@ import {
     Mail,
     Search,
     RefreshCw,
-    Play
+    Play,
+    Target,
+    Zap,
+    ShieldCheck,
+    SlidersHorizontal,
+    RotateCcw
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import PlayerDetailsModal from "../components/players/PlayerDetailsModal";
+
+/* ── helpers ─────────────────────────────────────────────── */
+const ROLE_CONFIG = {
+    Batsman: { color: "bg-blue-500/15 text-blue-400 border border-blue-500/25", icon: Target },
+    Bowler: { color: "bg-red-500/15 text-red-400 border border-red-500/25", icon: Zap },
+    "All-Rounder": { color: "bg-purple-500/15 text-purple-400 border border-purple-500/25", icon: ShieldCheck },
+    "Wicket-Keeper": { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    Wicketkeeper: { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    default: { color: "bg-gray-500/15 text-gray-400 border border-gray-500/25", icon: User },
+};
+
+const RoleBadge = ({ role }) => {
+    const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.default;
+    const Icon = cfg.icon;
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${cfg.color}`}
+        >
+            <Icon size={11} />
+            {role || "—"}
+        </span>
+    );
+};
+
+const StatusBadge = ({ status }) => {
+    const map = {
+        UNSOLD: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/25",
+        SOLD: "bg-green-500/15 text-green-400 border border-green-500/25",
+        PENDING: "bg-gray-500/15 text-gray-400 border border-gray-500/25",
+        AVAILABLE: "bg-blue-500/15 text-blue-400 border border-blue-500/25",
+    };
+    return (
+        <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${map[status] || map.PENDING}`}
+        >
+            {status || "PENDING"}
+        </span>
+    );
+};
+
+const Avatar = ({ name }) => {
+    const initials = name
+        ? name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+        : "P";
+    const hue = (name?.charCodeAt(0) || 60) % 360;
+    return (
+        <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-black text-[11px] font-black shrink-0 shadow-md"
+            style={{
+                background: `linear-gradient(135deg, hsl(${hue},80%,60%), hsl(${(hue + 40) % 360},80%,50%))`,
+            }}
+        >
+            {initials}
+        </div>
+    );
+};
 
 const TeamOwnerDashboard = () => {
     const [team, setTeam] = useState(null);
+    const [allTeams, setAllTeams] = useState([]);
     const [tournament, setTournament] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState("roster"); // Tabs: roster, bids, opponents, league-info
+    const [activeTab, setActiveTab] = useState("roster");
     const [searchQuery, setSearchQuery] = useState("");
+
+    const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+
+    // Players Tab Filter/Sort States
+    const [playerSearch, setPlayerSearch] = useState("");
+    const [playerRole, setPlayerRole] = useState("All");
+    const [playerStatus, setPlayerStatus] = useState("All");
+    const [playerSort, setPlayerSort] = useState("name-asc");
 
     const getToken = () => {
         return localStorage.getItem("token");
@@ -38,27 +109,41 @@ const TeamOwnerDashboard = () => {
         else setRefreshing(true);
 
         try {
-            // Fetch owner's team details
-            const teamRes = await axios.get("http://localhost:5000/api/teams/owner/my-team", {
+            // Fetch all owner's teams
+            const teamsRes = await axios.get("http://localhost:5000/api/teams/owner/my-teams", {
                 headers: {
                     Authorization: `Bearer ${getToken()}`
                 }
             });
-            const teamData = teamRes.data.data;
-            setTeam(teamData);
+            const teamsData = teamsRes.data.data || [];
+            setAllTeams(teamsData);
 
-            // Fetch tournament details if team is registered
-            if (teamData?.tournamentId) {
-                const tourRes = await axios.get(`http://localhost:5000/api/tournaments/${teamData.tournamentId}`, {
-                    headers: {
-                        Authorization: `Bearer ${getToken()}`
-                    }
-                });
-                setTournament(tourRes.data.data);
+            let currentTeam = team;
+            if (teamsData.length > 0) {
+                if (!currentTeam || !teamsData.some(t => t.id === currentTeam.id)) {
+                    currentTeam = teamsData[0];
+                } else {
+                    currentTeam = teamsData.find(t => t.id === currentTeam.id);
+                }
+                setTeam(currentTeam);
+
+                // Fetch tournament details for the selected team
+                if (currentTeam?.tournamentId) {
+                    const tourRes = await axios.get(`http://localhost:5000/api/tournaments/${currentTeam.tournamentId}`, {
+                        headers: {
+                            Authorization: `Bearer ${getToken()}`
+                        }
+                    });
+                    setTournament(tourRes.data.data);
+                } else {
+                    setTournament(null);
+                }
+            } else {
+                setTeam(null);
+                setTournament(null);
             }
         } catch (error) {
             console.error("Dashboard load error:", error);
-            // Don't show toast error if it is a 404 (handled in UI)
             if (error.response?.status !== 404) {
                 toast.error("Failed to load dashboard data");
             }
@@ -72,12 +157,97 @@ const TeamOwnerDashboard = () => {
         loadDashboardData();
     }, []);
 
+    // Memoized map of playerId -> { team, price } to determine if player is sold
+    const soldPlayersMap = React.useMemo(() => {
+        const map = new Map();
+        if (!tournament || !tournament.teams) return map;
+        tournament.teams.forEach(t => {
+            if (t.playersWon) {
+                t.playersWon.forEach(soldRec => {
+                    map.set(soldRec.playerId, {
+                        teamName: t.name,
+                        logo: t.logo,
+                        price: soldRec.price || 0
+                    });
+                });
+            }
+        });
+        return map;
+    }, [tournament]);
+
+    // Player Pool filtering & sorting logic
+    const processedPlayers = React.useMemo(() => {
+        if (!tournament || !tournament.players) return [];
+        let result = [...tournament.players];
+
+        // Search Filter
+        if (playerSearch.trim() !== "") {
+            const q = playerSearch.toLowerCase();
+            result = result.filter(p =>
+                (p.name && p.name.toLowerCase().includes(q)) ||
+                (p.role && p.role.toLowerCase().includes(q))
+            );
+        }
+
+        // Role Filter
+        if (playerRole !== "All") {
+            result = result.filter(p => {
+                if (playerRole === "Wicketkeeper") {
+                    return p.role === "Wicketkeeper" || p.role === "Wicket-Keeper";
+                }
+                return p.role === playerRole;
+            });
+        }
+
+        // Status Filter
+        if (playerStatus !== "All") {
+            if (playerStatus === "SOLD") {
+                result = result.filter(p => soldPlayersMap.has(p.id));
+            } else if (playerStatus === "AVAILABLE") {
+                result = result.filter(p => !soldPlayersMap.has(p.id));
+            }
+        }
+
+        // Sort
+        result.sort((a, b) => {
+            if (playerSort === "name-asc") {
+                return (a.name || "").localeCompare(b.name || "");
+            }
+            if (playerSort === "basePrice-desc") {
+                return (b.basePrice || 0) - (a.basePrice || 0);
+            }
+            if (playerSort === "basePrice-asc") {
+                return (a.basePrice || 0) - (b.basePrice || 0);
+            }
+            if (playerSort === "soldPrice-desc") {
+                const priceA = soldPlayersMap.get(a.id)?.price || 0;
+                const priceB = soldPlayersMap.get(b.id)?.price || 0;
+                return priceB - priceA;
+            }
+            return 0;
+        });
+
+        return result;
+    }, [tournament, playerSearch, playerRole, playerStatus, playerSort, soldPlayersMap]);
+
+    // Active auctions across all teams the owner participates with
+    const activeAuctions = React.useMemo(() => {
+        const list = [];
+        allTeams.forEach(t => {
+            const active = t.tournament?.auctions?.find(a => a.status === "ACTIVE");
+            if (active) {
+                list.push({
+                    team: t,
+                    tournament: t.tournament,
+                    auction: active
+                });
+            }
+        });
+        return list;
+    }, [allTeams]);
+
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     if (loading) {
@@ -106,7 +276,7 @@ const TeamOwnerDashboard = () => {
                         No Team Registered
                     </h2>
                     <p className="text-gray-400 max-w-md mb-8 text-sm">
-                        Your account is registered as a Team Owner, but you haven't been assigned to a team yet. 
+                        Your account is registered as a Team Owner, but you haven't been assigned to a team yet.
                         Please contact the Tournament Organizer to register your team.
                     </p>
                     <button
@@ -157,7 +327,45 @@ const TeamOwnerDashboard = () => {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {allTeams.length > 1 && (
+                                <div className="flex items-center gap-2 mr-2">
+                                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Switch Team:</span>
+                                    <select
+                                        value={team.id}
+                                        onChange={async (e) => {
+                                            const selectedId = e.target.value;
+                                            const selectedTeam = allTeams.find(t => t.id === selectedId);
+                                            setTeam(selectedTeam);
+                                            if (selectedTeam?.tournamentId) {
+                                                setLoading(true);
+                                                try {
+                                                    const tourRes = await axios.get(`http://localhost:5000/api/tournaments/${selectedTeam.tournamentId}`, {
+                                                        headers: {
+                                                            Authorization: `Bearer ${getToken()}`
+                                                        }
+                                                    });
+                                                    setTournament(tourRes.data.data);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                    toast.error("Failed to load tournament details");
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            } else {
+                                                setTournament(null);
+                                            }
+                                        }}
+                                        className="bg-[#080E27] hover:bg-[#0F1B3D] border border-white/5 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#FDB913] text-gray-300 font-bold transition cursor-pointer"
+                                    >
+                                        {allTeams.map(t => (
+                                            <option key={t.id} value={t.id} className="bg-[#0A0F2C]">
+                                                {t.name} ({t.tournament?.name || "No Tournament"})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             <button
                                 onClick={() => loadDashboardData(true)}
                                 disabled={refreshing}
@@ -169,28 +377,36 @@ const TeamOwnerDashboard = () => {
                         </div>
                     </div>
 
-                    {/* LIVE AUCTION HIGHLIGHT */}
-                    {activeAuction && (
-                        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl" />
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 animate-pulse">
-                                    <Flame size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="font-extrabold text-white text-base">Auction is Live!</h4>
-                                    <p className="text-xs text-gray-300 mt-0.5">Bids are currently being placed in your tournament.</p>
-                                </div>
+                    {/* LIVE AUCTIONS LIST */}
+                    {activeAuctions.length > 0 && (
+                        <div className="space-y-3 mb-8">
+                            <div className="flex items-center gap-2 px-1">
+                                <span className="inline-flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
+                                <h3 className="text-xs font-bold text-red-400 uppercase tracking-widest">
+                                    Live Auctions Running
+                                </h3>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
-                                <span className="text-xs font-bold uppercase text-red-400 tracking-wider">Active Arena Session</span>
-                                <Link
-                                    to={`/auctions/live/${team.tournamentId}`}
-                                    className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-red-600/25 active:scale-95 shrink-0"
-                                >
-                                    <Play size={10} fill="currentColor" /> Enter Arena & Bid
-                                </Link>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {activeAuctions.map(({ team: t, tournament: tour }) => (
+                                    <div key={t.id} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl" />
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 animate-pulse">
+                                                <Flame size={24} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="font-extrabold text-white text-base truncate uppercase" title={tour.name}>{tour.name}</h4>
+                                                <p className="text-xs text-gray-300 mt-0.5">Participating as: <strong className="text-white">{t.name}</strong></p>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            to={`/auctions/live/${t.tournamentId}`}
+                                            className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-red-600/25 active:scale-95 shrink-0"
+                                        >
+                                            <Play size={10} fill="currentColor" /> Enter Arena
+                                        </Link>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
@@ -200,41 +416,41 @@ const TeamOwnerDashboard = () => {
                         {/* TOTAL PURSE */}
                         <div className="bg-[#080E27] border border-white/5 p-5 rounded-2xl flex flex-col justify-between hover:border-white/10 transition">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Allocated Purse</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Allocated Points</span>
                                 <div className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 text-green-400">
-                                    <IndianRupee size={16} />
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
                                 <h3 className="text-2xl font-black text-green-400">
                                     {formatCurrency(totalPurse)}
                                 </h3>
-                                <p className="text-[10px] text-gray-500 mt-1">Starting budget for players</p>
+                                <p className="text-[10px] text-gray-500 mt-1">Starting points allocation</p>
                             </div>
                         </div>
 
                         {/* REMAINING PURSE */}
                         <div className="bg-[#080E27] border border-white/5 p-5 rounded-2xl flex flex-col justify-between hover:border-white/10 transition">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Remaining Purse</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Remaining Points</span>
                                 <div className="bg-blue-500/10 p-2 rounded-xl border border-blue-500/20 text-blue-400">
-                                    <IndianRupee size={16} />
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
                                 <h3 className={`text-2xl font-black ${remainingPurse < 0 ? 'text-red-400' : 'text-blue-400'}`}>
                                     {formatCurrency(remainingPurse)}
                                 </h3>
-                                <p className="text-[10px] text-gray-500 mt-1">Available bidding cash</p>
+                                <p className="text-[10px] text-gray-500 mt-1">Available points budget</p>
                             </div>
                         </div>
 
                         {/* PURSE SPENT */}
                         <div className="bg-[#080E27] border border-white/5 p-5 rounded-2xl flex flex-col justify-between hover:border-white/10 transition">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Purse Spent</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Points Spent</span>
                                 <div className="bg-yellow-500/10 p-2 rounded-xl border border-yellow-500/20 text-[#FDB913]">
-                                    <IndianRupee size={16} />
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
@@ -278,6 +494,14 @@ const TeamOwnerDashboard = () => {
                                 <Users size={16} />
                                 <span className="hidden sm:inline">Squad Roster</span>
                                 <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full">{rosterCount}</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("players")}
+                                className={`flex-1 py-4 px-4 font-bold text-xs sm:text-sm border-b-2 transition flex items-center justify-center gap-2 ${activeTab === "players" ? "border-[#FDB913] text-[#FDB913] bg-[#0F1E4D]/25" : "border-transparent text-gray-400 hover:text-white"}`}
+                            >
+                                <User size={16} />
+                                <span className="hidden sm:inline">Player Pool</span>
+                                <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full">{tournament?.players?.length || 0}</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab("bids")}
@@ -343,7 +567,11 @@ const TeamOwnerDashboard = () => {
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
                                                     {filteredRoster.map((record) => (
-                                                        <tr key={record.id} className="hover:bg-white/5 transition-colors">
+                                                        <tr 
+                                                            key={record.id} 
+                                                            onClick={() => record.player?.id && setSelectedPlayerId(record.player.id)}
+                                                            className="hover:bg-white/5 transition-colors cursor-pointer"
+                                                        >
                                                             <td className="p-4 font-bold text-white">
                                                                 {record.player?.name || "Unknown Player"}
                                                             </td>
@@ -366,6 +594,234 @@ const TeamOwnerDashboard = () => {
                                                 </tbody>
                                             </table>
                                         </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* PLAYERS TAB (PLAYER POOL) */}
+                            {activeTab === "players" && (
+                                <div className="space-y-6">
+                                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                                        <div>
+                                            <h2 className="text-lg font-black text-white uppercase tracking-tight">Tournament Player Pool</h2>
+                                            <p className="text-xs text-gray-400 mt-1">Browse all players registered for this tournament auction.</p>
+                                        </div>
+
+                                        {/* Filter Bar Controls */}
+                                        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full xl:w-auto">
+                                            {/* Search */}
+                                            <div className="relative flex-1 sm:w-64 sm:flex-none">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                                                    <Search size={14} />
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search player name/role..."
+                                                    value={playerSearch}
+                                                    onChange={(e) => setPlayerSearch(e.target.value)}
+                                                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#001F54]/30 border border-white/10 focus:outline-none focus:ring-1 focus:ring-[#FDB913] transition text-xs text-white placeholder-gray-500"
+                                                />
+                                            </div>
+
+                                            {/* Sort Select */}
+                                            <div className="flex items-center gap-2">
+                                                <SlidersHorizontal size={14} className="text-gray-400 shrink-0" />
+                                                <select
+                                                    value={playerSort}
+                                                    onChange={(e) => setPlayerSort(e.target.value)}
+                                                    className="bg-[#001F54]/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#FDB913] text-gray-300"
+                                                >
+                                                    <option value="name-asc" className="bg-[#0A0F2C]">Name (A-Z)</option>
+                                                    <option value="basePrice-desc" className="bg-[#0A0F2C]">Base Price: High to Low</option>
+                                                    <option value="basePrice-asc" className="bg-[#0A0F2C]">Base Price: Low to High</option>
+                                                    <option value="soldPrice-desc" className="bg-[#0A0F2C]">Sold Price: High to Low</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Tabs for Category Filters */}
+                                    <div className="flex flex-wrap gap-2 items-center justify-between bg-white/5 p-2 rounded-2xl border border-white/5">
+                                        <div className="flex flex-wrap gap-1">
+                                            {["All", "Batsman", "Bowler", "All-Rounder", "Wicketkeeper"].map((role) => (
+                                                <button
+                                                    key={role}
+                                                    onClick={() => setPlayerRole(role)}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${playerRole === role ? 'bg-[#FDB913] text-black shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                                >
+                                                    {role}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-1 border-l border-white/10 pl-2 mt-2 sm:mt-0">
+                                            {["All", "AVAILABLE", "SOLD"].map((status) => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setPlayerStatus(status)}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${playerStatus === status ? 'bg-[#001F54] text-[#FDB913] border border-[#FDB913]/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                                >
+                                                    {status === "AVAILABLE" ? "Available" : status === "SOLD" ? "Sold" : "All Status"}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Players Grid / Table */}
+                                    {!tournament?.players || tournament.players.length === 0 ? (
+                                        <div className="py-12 text-center text-gray-500 text-sm">
+                                            No players registered in this tournament yet.
+                                        </div>
+                                    ) : processedPlayers.length === 0 ? (
+                                        <div className="py-12 text-center text-gray-500 text-sm">
+                                            No players matching the filters.
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Desktop Table View */}
+                                            <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/5 bg-[#001F54]/5 shadow-xl">
+                                                <table className="w-full text-sm text-left border-collapse">
+                                                    <thead className="bg-[#001F54]/30 text-gray-400 font-semibold text-xs border-b border-white/5">
+                                                        <tr>
+                                                            <th className="p-4">Player</th>
+                                                            <th className="p-4">Role</th>
+                                                            <th className="p-4 text-right">Base Price</th>
+                                                            <th className="p-4 text-center">Status</th>
+                                                            <th className="p-4">Purchased By</th>
+                                                            <th className="p-4 text-right">Sold Price</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {processedPlayers.map((player) => {
+                                                            const soldInfo = soldPlayersMap.get(player.id);
+                                                            const isSold = !!soldInfo;
+
+                                                            return (
+                                                                <tr 
+                                                                    key={player.id} 
+                                                                    onClick={() => setSelectedPlayerId(player.id)}
+                                                                    className="hover:bg-white/5 transition-colors duration-150 cursor-pointer"
+                                                                >
+                                                                    <td className="p-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <Avatar name={player.name} />
+                                                                            <div>
+                                                                                <div className="font-bold text-white text-sm">{player.name}</div>
+                                                                                <div className="text-[10px] text-gray-500">ID: {player.id.substring(0, 8)}...</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <RoleBadge role={player.role} />
+                                                                    </td>
+                                                                    <td className="p-4 text-right text-gray-300 font-bold">
+                                                                        {formatCurrency(player.basePrice)}
+                                                                    </td>
+                                                                    <td className="p-4 text-center">
+                                                                        <StatusBadge status={isSold ? "SOLD" : "AVAILABLE"} />
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        {isSold ? (
+                                                                            <div className="flex items-center gap-2">
+                                                                                {soldInfo.logo ? (
+                                                                                    <img
+                                                                                        src={soldInfo.logo}
+                                                                                        alt={soldInfo.teamName}
+                                                                                        className="w-5 h-5 rounded-full object-cover border border-white/10"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-5 h-5 rounded-full bg-[#FDB913]/10 border border-[#FDB913]/20 flex items-center justify-center font-black text-[9px] text-[#FDB913]">
+                                                                                        {soldInfo.teamName.substring(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                                <span className="text-gray-300 font-semibold truncate max-w-[120px]" title={soldInfo.teamName}>
+                                                                                    {soldInfo.teamName}
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-gray-600">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="p-4 text-right">
+                                                                        {isSold ? (
+                                                                            <span className="text-green-400 font-black">{formatCurrency(soldInfo.price)}</span>
+                                                                        ) : (
+                                                                            <span className="text-gray-600">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Mobile Cards View */}
+                                            <div className="md:hidden space-y-3">
+                                                {processedPlayers.map((player) => {
+                                                    const soldInfo = soldPlayersMap.get(player.id);
+                                                    const isSold = !!soldInfo;
+
+                                                    return (
+                                                         <div 
+                                                             key={player.id} 
+                                                             onClick={() => setSelectedPlayerId(player.id)}
+                                                             className="bg-[#001F54]/10 border border-white/5 rounded-2xl p-4 flex flex-col justify-between hover:border-white/10 transition shadow-md cursor-pointer"
+                                                         >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar name={player.name} />
+                                                                    <div className="min-w-0">
+                                                                        <h4 className="font-bold text-white text-sm truncate">{player.name}</h4>
+                                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                                            <RoleBadge role={player.role} />
+                                                                            <StatusBadge status={isSold ? "SOLD" : "AVAILABLE"} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
+                                                                <div>
+                                                                    <span className="text-gray-500 block text-[10px] uppercase font-bold tracking-wider">Base Price</span>
+                                                                    <span className="text-gray-300 font-extrabold mt-0.5 block">{formatCurrency(player.basePrice)}</span>
+                                                                </div>
+                                                                {isSold ? (
+                                                                    <div>
+                                                                        <span className="text-gray-500 block text-[10px] uppercase font-bold tracking-wider">Sold Price</span>
+                                                                        <span className="text-green-400 font-extrabold mt-0.5 block">{formatCurrency(soldInfo.price)}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div>
+                                                                        <span className="text-gray-500 block text-[10px] uppercase font-bold tracking-wider">Purchased By</span>
+                                                                        <span className="text-gray-400 mt-0.5 block">—</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {isSold && (
+                                                                <div className="mt-3 bg-white/5 border border-white/5 rounded-xl px-3 py-2 flex items-center gap-2">
+                                                                    <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Purchaser:</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        {soldInfo.logo ? (
+                                                                            <img
+                                                                                src={soldInfo.logo}
+                                                                                alt={soldInfo.teamName}
+                                                                                className="w-4 h-4 rounded-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-4 h-4 rounded-full bg-[#FDB913]/10 border border-[#FDB913]/20 flex items-center justify-center font-black text-[8px] text-[#FDB913]">
+                                                                                {soldInfo.teamName.substring(0, 2).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                        <span className="text-xs text-gray-200 font-bold truncate max-w-[150px]">{soldInfo.teamName}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -439,7 +895,7 @@ const TeamOwnerDashboard = () => {
                                                         <p className="text-xs text-gray-400 mt-0.5">Owner: {opponent.ownerName}</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xs text-gray-500">Remaining Purse</p>
+                                                        <p className="text-xs text-gray-500">Remaining Points</p>
                                                         <p className="text-sm font-extrabold text-[#FDB913] mt-0.5">{formatCurrency(opponent.remainingPurse)}</p>
                                                     </div>
                                                 </div>
@@ -451,6 +907,12 @@ const TeamOwnerDashboard = () => {
                         </div>
                     </div>
                 </div>
+                {selectedPlayerId && (
+                    <PlayerDetailsModal 
+                        playerId={selectedPlayerId} 
+                        onClose={() => setSelectedPlayerId(null)} 
+                    />
+                )}
             </main>
         </div>
     );

@@ -5,11 +5,12 @@ import {
     getTournamentById,
     deleteTournament
 } from "../../services/tournamentService";
+import { deletePlayer } from "../../services/playerService";
 import {
     Trophy,
     MapPin,
     Calendar,
-    IndianRupee,
+    Coins,
     Users,
     ArrowLeft,
     Edit,
@@ -18,9 +19,70 @@ import {
     ShieldAlert,
     Clock,
     Plus,
-    User
+    User,
+    Search,
+    SlidersHorizontal,
+    Target,
+    Zap,
+    ShieldCheck,
+    Eye
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+/* ── helpers ─────────────────────────────────────────────── */
+const ROLE_CONFIG = {
+    Batsman: { color: "bg-blue-500/15 text-blue-400 border border-blue-500/25", icon: Target },
+    Bowler: { color: "bg-red-500/15 text-red-400 border border-red-500/25", icon: Zap },
+    "All-Rounder": { color: "bg-purple-500/15 text-purple-400 border border-purple-500/25", icon: ShieldCheck },
+    "Wicket-Keeper": { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    Wicketkeeper: { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    default: { color: "bg-gray-500/15 text-gray-400 border border-gray-500/25", icon: User },
+};
+
+const RoleBadge = ({ role }) => {
+    const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.default;
+    const Icon = cfg.icon;
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${cfg.color}`}
+        >
+            <Icon size={11} />
+            {role || "—"}
+        </span>
+    );
+};
+
+const StatusBadge = ({ status }) => {
+    const map = {
+        UNSOLD: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/25",
+        SOLD: "bg-green-500/15 text-green-400 border border-green-500/25",
+        PENDING: "bg-gray-500/15 text-gray-400 border border-gray-500/25",
+    };
+    return (
+        <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${map[status] || map.PENDING}`}
+        >
+            {status || "PENDING"}
+        </span>
+    );
+};
+
+const Avatar = ({ name }) => {
+    const initials = name
+        ? name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+        : "P";
+    const hue = (name?.charCodeAt(0) || 60) % 360;
+    return (
+        <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-black text-[11px] font-black shrink-0 shadow-md"
+            style={{
+                background: `linear-gradient(135deg, hsl(${hue},80%,60%), hsl(${(hue + 40) % 360},80%,50%))`,
+            }}
+        >
+            {initials}
+        </div>
+    );
+};
 
 const TournamentDetails = () => {
     const { id } = useParams();
@@ -31,6 +93,17 @@ const TournamentDetails = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState("teams"); // tabs: teams, players, auctions
+
+    // Players Tab Filter/Sort States
+    const [playerSearchQuery, setPlayerSearchQuery] = useState("");
+    const [playerRoleFilter, setPlayerRoleFilter] = useState("ALL");
+    const [playerStatusFilter, setPlayerStatusFilter] = useState("ALL");
+    const [playerSortBy, setPlayerSortBy] = useState("name-asc");
+
+    // Player Deletion States
+    const [playerDeleteModalOpen, setPlayerDeleteModalOpen] = useState(false);
+    const [playerToDelete, setPlayerToDelete] = useState(null);
+    const [deletingPlayer, setDeletingPlayer] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -47,6 +120,23 @@ const TournamentDetails = () => {
         fetchDetails();
     }, [id]);
 
+    // Memoized map of playerId -> { team, price } to fix missing soldRecord relation on player
+    const soldPlayersMap = React.useMemo(() => {
+        const map = new Map();
+        if (!tournament || !tournament.teams) return map;
+        tournament.teams.forEach(team => {
+            if (team.playersWon) {
+                team.playersWon.forEach(soldRec => {
+                    map.set(soldRec.playerId, {
+                        team,
+                        price: soldRec.price || 0
+                    });
+                });
+            }
+        });
+        return map;
+    }, [tournament]);
+
     const handleDelete = async () => {
         setDeleting(true);
         try {
@@ -62,6 +152,32 @@ const TournamentDetails = () => {
         }
     };
 
+    const handleDeletePlayer = async () => {
+        if (!playerToDelete) return;
+        setDeletingPlayer(true);
+        try {
+            await deletePlayer(playerToDelete.id);
+            toast.success(`Player ${playerToDelete.name} deleted successfully`);
+
+            // Update tournament.players state locally
+            setTournament(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    players: (prev.players || []).filter(p => p.id !== playerToDelete.id)
+                };
+            });
+
+            setPlayerDeleteModalOpen(false);
+            setPlayerToDelete(null);
+        } catch (err) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Failed to delete player.");
+        } finally {
+            setDeletingPlayer(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return "Date not set";
         return new Date(dateString).toLocaleDateString(undefined, {
@@ -73,11 +189,7 @@ const TournamentDetails = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     if (loading) {
@@ -121,6 +233,102 @@ const TournamentDetails = () => {
     // Calculate total purse allocated to teams
     const allocatedPurse = tournament.teams?.reduce((sum, t) => sum + (t.purseAmount || 0), 0) || 0;
     const remainingPurse = totalPurse - allocatedPurse;
+
+
+
+    // Players analytics calculations
+    const playerStats = (() => {
+        if (!tournament.players) return { total: 0, sold: 0, unsold: 0, pending: 0, totalSpent: 0 };
+        const total = tournament.players.length;
+        let sold = 0;
+        let unsold = 0;
+        let pending = 0;
+        let totalSpent = 0;
+
+        tournament.players.forEach(p => {
+            const isSold = soldPlayersMap.has(p.id);
+            if (isSold) {
+                sold++;
+                totalSpent += soldPlayersMap.get(p.id).price;
+            } else if (p.status === "UNSOLD") {
+                unsold++;
+            } else {
+                pending++;
+            }
+        });
+
+        return { total, sold, unsold, pending, totalSpent };
+    })();
+
+    // Filtering/sorting player pool
+    const processedPlayers = (() => {
+        if (!tournament.players) return [];
+        let result = [...tournament.players];
+
+        // Search Filter
+        if (playerSearchQuery.trim() !== "") {
+            const query = playerSearchQuery.toLowerCase();
+            result = result.filter(p =>
+                (p.name && p.name.toLowerCase().includes(query)) ||
+                (p.role && p.role.toLowerCase().includes(query))
+            );
+        }
+
+        // Role Filter
+        if (playerRoleFilter !== "ALL") {
+            result = result.filter(p => {
+                if (playerRoleFilter === "Wicketkeeper") {
+                    return p.role === "Wicketkeeper" || p.role === "Wicket-Keeper";
+                }
+                return p.role === playerRoleFilter;
+            });
+        }
+
+        // Status Filter
+        if (playerStatusFilter !== "ALL") {
+            if (playerStatusFilter === "SOLD") {
+                result = result.filter(p => soldPlayersMap.has(p.id));
+            } else if (playerStatusFilter === "UNSOLD") {
+                result = result.filter(p => !soldPlayersMap.has(p.id) && p.status === "UNSOLD");
+            } else if (playerStatusFilter === "PENDING") {
+                result = result.filter(p => !soldPlayersMap.has(p.id) && p.status !== "UNSOLD");
+            }
+        }
+
+        // Sorting
+        result.sort((a, b) => {
+            if (playerSortBy === "name-asc") {
+                return (a.name || "").localeCompare(b.name || "");
+            }
+            if (playerSortBy === "basePrice-desc") {
+                return (b.basePrice || 0) - (a.basePrice || 0);
+            }
+            if (playerSortBy === "basePrice-asc") {
+                return (a.basePrice || 0) - (b.basePrice || 0);
+            }
+            if (playerSortBy === "soldPrice-desc") {
+                const priceA = soldPlayersMap.get(a.id)?.price || 0;
+                const priceB = soldPlayersMap.get(b.id)?.price || 0;
+                return priceB - priceA;
+            }
+            return 0;
+        });
+
+        return result;
+    })();
+
+    const getSoldTeam = (player) => {
+        return soldPlayersMap.get(player.id)?.team || null;
+    };
+
+    const getSoldTeamName = (player) => {
+        const team = getSoldTeam(player);
+        return team ? team.name : "Unknown Team";
+    };
+
+    const getSoldPrice = (player) => {
+        return soldPlayersMap.get(player.id)?.price || null;
+    };
 
     return (
         <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-[#0A0F2C] to-[#020617] text-white">
@@ -183,80 +391,6 @@ const TournamentDetails = () => {
                         </div>
                     </div>
 
-                    {/* STATS TILES GRID */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                        {/* TOTAL PURSE */}
-                        <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Purse Budget</span>
-                                <div className="bg-green-500/10 p-1.5 rounded-lg border border-green-500/20 text-green-400">
-                                    <IndianRupee size={16} />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-green-400">
-                                    {formatCurrency(totalPurse)}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">Starting budget for team bids</p>
-                            </div>
-                        </div>
-
-                        {/* REMAINING PURSE */}
-                        <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Unallocated Purse</span>
-                                <div className="bg-blue-500/10 p-1.5 rounded-lg border border-blue-500/20 text-blue-400">
-                                    <IndianRupee size={16} />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className={`text-2xl font-black ${remainingPurse < 0 ? 'text-red-400' : 'text-blue-400'}`}>
-                                    {formatCurrency(remainingPurse)}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {remainingPurse < 0 ? "Purse over-allocated!" : "Available for new teams"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* REGISTERED TEAMS */}
-                        <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Registered Teams</span>
-                                <div className="bg-purple-500/10 p-1.5 rounded-lg border border-purple-500/20 text-purple-400">
-                                    <Users size={16} />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-white">
-                                    {registeredTeamsCount} <span className="text-sm font-semibold text-gray-500">/ {maxTeams || "∞"}</span>
-                                </h3>
-                                <div className="w-full bg-[#001F54] rounded-full h-1.5 mt-2 overflow-hidden">
-                                    <div
-                                        className="bg-purple-500 h-1.5 rounded-full"
-                                        style={{ width: maxTeams ? `${Math.min((registeredTeamsCount / maxTeams) * 100, 100)}%` : '100%' }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* REGISTERED PLAYERS */}
-                        <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Registered Players</span>
-                                <div className="bg-yellow-500/10 p-1.5 rounded-lg border border-yellow-500/20 text-yellow-400">
-                                    <User size={16} />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-white">
-                                    {registeredPlayersCount}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">Available in auction pool</p>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* DETAILED CONTENT TABS */}
                     <div className="bg-[#0F1E4D]/20 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                         {/* Tab Headers */}
@@ -288,7 +422,7 @@ const TournamentDetails = () => {
                         <div className="p-6">
                             {/* TEAMS TAB */}
                             {activeTab === "teams" && (
-                                <div className="space-y-4">
+                                <div className="space-y-4 animate-in fade-in duration-200">
                                     <div className="flex justify-between items-center">
                                         <h2 className="text-lg font-bold text-gray-300">Registered Teams</h2>
                                         <Link
@@ -328,7 +462,7 @@ const TournamentDetails = () => {
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xs text-gray-500 font-medium">Remaining Purse</p>
+                                                        <p className="text-xs text-gray-500 font-medium">Remaining Points</p>
                                                         <p className="text-sm font-black text-green-400 mt-0.5">
                                                             {formatCurrency(team.remainingPurse)}
                                                         </p>
@@ -342,55 +476,336 @@ const TournamentDetails = () => {
 
                             {/* PLAYERS TAB */}
                             {activeTab === "players" && (
-                                <div className="space-y-4">
+                                <div className="space-y-6 animate-in fade-in duration-200">
                                     <div className="flex justify-between items-center">
-                                        <h2 className="text-lg font-bold text-gray-300">Player Pool</h2>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-200">Player Pool</h2>
+                                            <p className="text-xs text-gray-500 mt-0.5">Manage player listings and auction statuses for this season</p>
+                                        </div>
                                         <Link
                                             to="/players/add"
-                                            className="inline-flex items-center gap-1 bg-[#FDB913] text-black px-3.5 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition"
+                                            className="inline-flex items-center gap-1.5 bg-[#FDB913] text-black px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition shadow-lg shadow-yellow-500/10"
                                         >
                                             <Plus size={14} /> Add Player
                                         </Link>
                                     </div>
 
-                                    {registeredPlayersCount === 0 ? (
-                                        <div className="py-12 text-center text-gray-500 text-sm">
-                                            No players registered in this tournament yet.
+                                    {/* Dynamic Mini Analytics Row */}
+                                    {tournament.players?.length > 0 && (
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                            <div className="bg-[#080E27]/40 border border-white/5 p-3 rounded-xl">
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Total Pool</span>
+                                                <span className="text-base font-black text-white mt-1 block">{playerStats.total}</span>
+                                            </div>
+                                            <div className="bg-[#080E27]/40 border border-white/5 p-3 rounded-xl">
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Sold Players</span>
+                                                <span className="text-base font-black text-green-400 mt-1 block">{playerStats.sold}</span>
+                                            </div>
+                                            <div className="bg-[#080E27]/40 border border-white/5 p-3 rounded-xl">
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Unsold</span>
+                                                <span className="text-base font-black text-yellow-500 mt-1 block">{playerStats.unsold}</span>
+                                            </div>
+                                            <div className="bg-[#080E27]/40 border border-white/5 p-3 rounded-xl">
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Pending Pool</span>
+                                                <span className="text-base font-black text-blue-400 mt-1 block">{playerStats.pending}</span>
+                                            </div>
+                                            <div className="bg-[#080E27]/40 border border-white/5 p-3 rounded-xl col-span-2 lg:col-span-1">
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Total Spent</span>
+                                                <span className="text-base font-black text-[#FDB913] mt-1 block truncate">{formatCurrency(playerStats.totalSpent)}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Interactive Filters Panel */}
+                                    {tournament.players?.length > 0 && (
+                                        <div className="bg-[#080E27]/40 border border-white/5 rounded-xl p-4 flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between shadow">
+                                            {/* Search Bar */}
+                                            <div className="relative flex-1 max-w-sm w-full">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search player name..."
+                                                    value={playerSearchQuery}
+                                                    onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                                                    className="w-full bg-white/3 border border-white/8 focus:border-[#FDB913] focus:ring-1 focus:ring-[#FDB913] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 outline-none transition"
+                                                />
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                                                {/* Role Filter Selector */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[11px] text-gray-500 font-medium">Role:</span>
+                                                    <select
+                                                        value={playerRoleFilter}
+                                                        onChange={(e) => setPlayerRoleFilter(e.target.value)}
+                                                        className="bg-[#080E27] border border-white/10 text-white text-[11px] rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:border-white/20 transition"
+                                                    >
+                                                        <option value="ALL">All Roles</option>
+                                                        <option value="Batsman">Batsmen</option>
+                                                        <option value="Bowler">Bowlers</option>
+                                                        <option value="All-Rounder">All-Rounders</option>
+                                                        <option value="Wicketkeeper">Wicketkeeper</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Status Filter Selector */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[11px] text-gray-500 font-medium">Status:</span>
+                                                    <select
+                                                        value={playerStatusFilter}
+                                                        onChange={(e) => setPlayerStatusFilter(e.target.value)}
+                                                        className="bg-[#080E27] border border-white/10 text-white text-[11px] rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:border-white/20 transition"
+                                                    >
+                                                        <option value="ALL">All Statuses</option>
+                                                        <option value="PENDING">Pending/Pool</option>
+                                                        <option value="SOLD">Sold</option>
+                                                        <option value="UNSOLD">Unsold</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Sort Selector */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[11px] text-gray-500 font-medium flex items-center gap-1">
+                                                        <SlidersHorizontal size={11} />
+                                                        Sort:
+                                                    </span>
+                                                    <select
+                                                        value={playerSortBy}
+                                                        onChange={(e) => setPlayerSortBy(e.target.value)}
+                                                        className="bg-[#080E27] border border-white/10 text-white text-[11px] rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:border-white/20 transition"
+                                                    >
+                                                        <option value="name-asc">Name (A-Z)</option>
+                                                        <option value="basePrice-desc">Base Price (High to Low)</option>
+                                                        <option value="basePrice-asc">Base Price (Low to High)</option>
+                                                        <option value="soldPrice-desc">Sold Price (High to Low)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Empty list state */}
+                                    {processedPlayers.length === 0 ? (
+                                        <div className="bg-[#080E27]/40 border border-white/5 rounded-xl py-12 px-6 text-center shadow">
+                                            <div className="w-12 h-12 rounded-full bg-white/3 flex items-center justify-center text-gray-500 mx-auto mb-3">
+                                                <User size={24} />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-white mb-1">No Players Found</h3>
+                                            <p className="text-xs text-gray-500 max-w-xs mx-auto mb-4">
+                                                {tournament.players?.length === 0
+                                                    ? "Start adding players to this tournament to set up the draft pool."
+                                                    : "No players matched your active search or filter selection."
+                                                }
+                                            </p>
+                                            {tournament.players?.length > 0 && (
+                                                <button
+                                                    onClick={() => {
+                                                        setPlayerSearchQuery("");
+                                                        setPlayerRoleFilter("ALL");
+                                                        setPlayerStatusFilter("ALL");
+                                                        setPlayerSortBy("name-asc");
+                                                    }}
+                                                    className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-1.5 rounded-lg text-xs font-semibold transition"
+                                                >
+                                                    Reset Filters
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
-                                        <div className="overflow-x-auto rounded-xl border border-white/5">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="bg-[#001F54]/50 text-gray-400 font-semibold text-xs border-b border-white/5">
-                                                    <tr>
-                                                        <th className="p-4">Player Name</th>
-                                                        <th className="p-4">Role</th>
-                                                        <th className="p-4 text-right">Base Price</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-white/5 bg-[#001F54]/10">
-                                                    {tournament.players.map((player) => (
-                                                        <tr key={player.id} className="hover:bg-[#001F54]/30 transition-colors">
-                                                            <td className="p-4 font-semibold text-gray-200">{player.name}</td>
-                                                            <td className="p-4">
-                                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                                    {player.role}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4 text-right text-green-400 font-extrabold">
-                                                                {formatCurrency(player.basePrice)}
-                                                            </td>
+                                        <>
+                                            {/* Desktop View Table */}
+                                            <div className="hidden md:block overflow-x-auto rounded-xl border border-white/5 bg-[#080E27]/30 shadow-lg">
+                                                <table className="w-full text-xs text-left border-collapse">
+                                                    <thead className="bg-[#001F54]/40 text-gray-400 font-semibold border-b border-white/5">
+                                                        <tr>
+                                                            <th className="p-4">Player</th>
+                                                            <th className="p-4">Role</th>
+                                                            <th className="p-4 text-right">Base Price</th>
+                                                            <th className="p-4 text-center">Status</th>
+                                                            <th className="p-4">Purchased By</th>
+                                                            <th className="p-4 text-right">Sold Price</th>
+                                                            <th className="p-4 text-center">Actions</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {processedPlayers.map((player) => {
+                                                            const soldTeam = getSoldTeam(player);
+                                                            const isSold = soldPlayersMap.has(player.id);
+                                                            const soldPriceVal = getSoldPrice(player);
+
+                                                            return (
+                                                                <tr key={player.id} className="hover:bg-white/3 transition duration-150">
+                                                                    {/* Player Profile */}
+                                                                    <td className="p-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <Avatar name={player.name} />
+                                                                            <div className="min-w-0">
+                                                                                <span className="font-semibold text-gray-200 block truncate">{player.name}</span>
+                                                                                <span className="text-[10px] text-gray-500 block mt-0.5">ID: {player.id?.slice(0, 8)}...</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    {/* Role */}
+                                                                    <td className="p-4">
+                                                                        <RoleBadge role={player.role} />
+                                                                    </td>
+                                                                    {/* Base Price */}
+                                                                    <td className="p-4 text-right font-medium text-gray-300">
+                                                                        {formatCurrency(player.basePrice)}
+                                                                    </td>
+                                                                    {/* Status */}
+                                                                    <td className="p-4 text-center">
+                                                                        <StatusBadge status={isSold ? "SOLD" : (player.status || "PENDING")} />
+                                                                    </td>
+                                                                    {/* Purchased By */}
+                                                                    <td className="p-4">
+                                                                        {isSold ? (
+                                                                            <div className="flex items-center gap-2">
+                                                                                {soldTeam?.logo ? (
+                                                                                    <img
+                                                                                        src={soldTeam.logo}
+                                                                                        alt={soldTeam.name}
+                                                                                        className="w-5 h-5 rounded-full border border-white/10 object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-5 h-5 rounded-full bg-[#FDB913]/10 border border-[#FDB913]/20 flex items-center justify-center font-black text-[9px] text-[#FDB913]">
+                                                                                        {getSoldTeamName(player).substring(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                                <span className="text-gray-300 font-semibold truncate max-w-[120px]" title={getSoldTeamName(player)}>
+                                                                                    {getSoldTeamName(player)}
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-gray-600">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                    {/* Sold Price */}
+                                                                    <td className="p-4 text-right">
+                                                                        {isSold ? (
+                                                                            <span className="text-green-400 font-bold">
+                                                                                {formatCurrency(soldPriceVal)}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-gray-600">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                    {/* Actions */}
+                                                                    <td className="p-4">
+                                                                        <div className="flex items-center justify-center gap-2">
+                                                                            <Link
+                                                                                to={`/players/edit/${player.id}`}
+                                                                                className="p-1.5 rounded-lg border border-[#FDB913]/20 bg-[#FDB913]/5 text-[#FDB913] hover:bg-[#FDB913]/15 hover:text-white transition"
+                                                                                title="Edit Player Details"
+                                                                            >
+                                                                                <Edit size={12} />
+                                                                            </Link>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setPlayerToDelete(player);
+                                                                                    setPlayerDeleteModalOpen(true);
+                                                                                }}
+                                                                                className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:text-white transition"
+                                                                                title="Delete Player"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Mobile View Cards */}
+                                            <div className="md:hidden space-y-3">
+                                                {processedPlayers.map((player) => {
+                                                    const soldTeam = getSoldTeam(player);
+                                                    const isSold = soldPlayersMap.has(player.id);
+                                                    const soldPriceVal = getSoldPrice(player);
+
+                                                    return (
+                                                        <div key={player.id} className="bg-[#080E27]/40 border border-white/5 rounded-xl p-4 flex flex-col justify-between shadow">
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar name={player.name} />
+                                                                    <div>
+                                                                        <h4 className="font-bold text-gray-200 text-xs sm:text-sm">{player.name}</h4>
+                                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                                            <RoleBadge role={player.role} />
+                                                                            <StatusBadge status={isSold ? "SOLD" : (player.status || "PENDING")} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex gap-1.5">
+                                                                    <Link
+                                                                        to={`/players/edit/${player.id}`}
+                                                                        className="p-1.5 rounded-lg border border-[#FDB913]/20 bg-[#FDB913]/5 text-[#FDB913] hover:bg-[#FDB913]/15 transition"
+                                                                    >
+                                                                        <Edit size={12} />
+                                                                    </Link>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPlayerToDelete(player);
+                                                                            setPlayerDeleteModalOpen(true);
+                                                                        }}
+                                                                        className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 transition"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mt-4 pt-3.5 border-t border-white/5 grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
+                                                                <div>
+                                                                    <span className="text-[10px] text-gray-500 block uppercase font-medium">Base Price</span>
+                                                                    <span className="text-gray-300 font-bold">{formatCurrency(player.basePrice)}</span>
+                                                                </div>
+
+                                                                {isSold ? (
+                                                                    <>
+                                                                        <div>
+                                                                            <span className="text-[10px] text-gray-500 block uppercase font-medium">Purchased By</span>
+                                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                                {soldTeam?.logo ? (
+                                                                                    <img
+                                                                                        src={soldTeam.logo}
+                                                                                        alt={soldTeam.name}
+                                                                                        className="w-4 h-4 rounded-full border border-white/10 object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-4 h-4 rounded-full bg-[#FDB913]/10 border border-[#FDB913]/20 flex items-center justify-center font-black text-[8px] text-[#FDB913]">
+                                                                                        {getSoldTeamName(player).substring(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                                <span className="text-gray-300 font-bold truncate max-w-[90px]">
+                                                                                    {getSoldTeamName(player)}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-[10px] text-gray-500 block uppercase font-medium">Sold Price</span>
+                                                                            <span className="text-green-400 font-black">{formatCurrency(soldPriceVal)}</span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="col-span-2 text-gray-600 italic">Not sold yet</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             )}
 
                             {/* AUCTIONS TAB */}
                             {activeTab === "auctions" && (
-                                <div className="space-y-4">
+                                <div className="space-y-4 animate-in fade-in duration-200">
                                     <div className="flex justify-between items-center">
                                         <h2 className="text-lg font-bold text-gray-300">Live Auctions</h2>
                                     </div>
@@ -482,6 +897,52 @@ const TournamentDetails = () => {
                                         <Trash2 size={16} />
                                         <span>Confirm Delete</span>
                                     </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PLAYER DELETE CONFIRMATION MODAL */}
+            {playerDeleteModalOpen && playerToDelete && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0F1E4D] border border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Red visual top band */}
+                        <div className="absolute top-0 inset-x-0 h-1.5 bg-red-500" />
+
+                        <div className="flex items-center gap-3 text-red-400 mb-4">
+                            <div className="bg-red-500/10 p-2 rounded-xl">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <h3 className="font-bold text-white text-base">Delete Player?</h3>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-gray-400 mb-6 leading-relaxed">
+                            Are you sure you want to delete <span className="font-bold text-white">{playerToDelete.name}</span>?
+                            This action cannot be undone and will remove all their bid records.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                disabled={deletingPlayer}
+                                onClick={() => {
+                                    setPlayerDeleteModalOpen(false);
+                                    setPlayerToDelete(null);
+                                }}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={deletingPlayer}
+                                onClick={handleDeletePlayer}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-red-500 hover:bg-red-600 text-white transition flex items-center justify-center gap-2"
+                            >
+                                {deletingPlayer ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <span>Delete</span>
                                 )}
                             </button>
                         </div>

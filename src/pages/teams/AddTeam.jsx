@@ -11,7 +11,7 @@ import {
     Sparkles,
     Loader2,
     AlertCircle,
-    IndianRupee,
+    Coins,
     Mail,
     Image as ImageIcon
 } from "lucide-react";
@@ -155,11 +155,7 @@ const AddTeam = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     // Calculate individual team starting purse based on divisor logic
@@ -194,7 +190,7 @@ const AddTeam = () => {
                                 Register New Team
                             </h1>
                             <p className="text-gray-400 text-sm">
-                                Create a team profile, pick a tournament, upload a logo, and verify their allocated purse budget.
+                                Create a team profile, pick a tournament, upload a logo, and verify their allocated points allocation.
                             </p>
                         </div>
                     </div>
@@ -314,7 +310,7 @@ const AddTeam = () => {
                                     {selectedTournamentData && (
                                         <div className="mt-2 bg-[#FDB913]/5 border border-[#FDB913]/10 rounded-xl p-3 text-xs text-[#FDB913] space-y-1">
                                             <div className="flex justify-between">
-                                                <span>Total Tournament Purse:</span>
+                                                <span>Total Tournament Points:</span>
                                                 <span className="font-bold">{formatCurrency(selectedTournamentData.purseAmount)}</span>
                                             </div>
                                             <div className="flex justify-between">
@@ -323,7 +319,7 @@ const AddTeam = () => {
                                             </div>
                                             <hr className="border-[#FDB913]/10 my-1" />
                                             <div className="flex justify-between text-sm font-black">
-                                                <span>Your Team Starting Purse:</span>
+                                                <span>Your Team Starting Points:</span>
                                                 <span>{formatCurrency(teamStartingPurse)}</span>
                                             </div>
                                         </div>
@@ -444,7 +440,7 @@ const AddTeam = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-[#001F54]/40 p-3 rounded-lg border border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase font-semibold flex items-center gap-1">
-                                                <IndianRupee size={10} /> Starting Purse
+                                                <Coins size={10} /> Allocated Points
                                             </p>
                                             <p className="text-base font-extrabold text-green-400 mt-0.5">
                                                 {formatCurrency(teamStartingPurse)}
@@ -453,7 +449,7 @@ const AddTeam = () => {
 
                                         <div className="bg-[#001F54]/40 p-3 rounded-lg border border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase font-semibold flex items-center gap-1">
-                                                <IndianRupee size={10} /> Spent Purse
+                                                <Coins size={10} /> Spent Points
                                             </p>
                                             <p className="text-base font-bold text-gray-500 mt-0.5">
                                                 {formatCurrency(0)}
@@ -467,7 +463,7 @@ const AddTeam = () => {
                             <div className="bg-[#0F1E4D]/20 rounded-xl border border-white/5 p-4 text-xs text-gray-400 flex gap-2.5">
                                 <Sparkles className="text-[#FDB913] shrink-0" size={16} />
                                 <div>
-                                    <span className="font-semibold text-gray-300">Divisor rule active:</span> Team purse budget is allocated automatically based on `Total Tournament Purse / Maximum Teams`. If the tournament configuration changes, this budget will adjust accordingly.
+                                    <span className="font-semibold text-gray-300">Divisor rule active:</span> Team points budget is allocated automatically based on `Total Tournament Points / Maximum Teams`. If the tournament configuration changes, this budget will adjust accordingly.
                                 </div>
                             </div>
                         </div>

@@ -8,7 +8,7 @@ import {
 import {
     Trophy,
     User,
-    IndianRupee,
+    Coins,
     Users,
     ArrowLeft,
     Edit,
@@ -64,11 +64,7 @@ const TeamDetails = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN').format(amount || 0) + " Pts";
     };
 
     if (loading) {
@@ -200,41 +196,39 @@ const TeamDetails = () => {
                         {/* TOTAL PURSE */}
                         <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Allocated Purse</span>
-                                <div className="bg-green-500/10 p-1.5 rounded-lg border border-green-500/20 text-green-400">
-                                    <IndianRupee size={16} />
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Allocated Points</span>
+                                <div className="bg-[#FDB913]/10 p-1.5 rounded-lg border border-[#FDB913]/20 text-[#FDB913]">
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-green-400">
+                                <h3 className="text-2xl font-black text-white">
                                     {formatCurrency(totalPurse)}
                                 </h3>
-                                <p className="text-xs text-gray-500 mt-1">Starting budget for players</p>
                             </div>
                         </div>
 
                         {/* REMAINING PURSE */}
                         <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Remaining Purse</span>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Remaining Points</span>
                                 <div className="bg-blue-500/10 p-1.5 rounded-lg border border-blue-500/20 text-blue-400">
-                                    <IndianRupee size={16} />
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>
                                 <h3 className={`text-2xl font-black ${remainingPurse < 0 ? 'text-red-400' : 'text-blue-400'}`}>
                                     {formatCurrency(remainingPurse)}
                                 </h3>
-                                <p className="text-xs text-gray-500 mt-1">Available bidding cash</p>
                             </div>
                         </div>
 
                         {/* SPENT PURSE */}
                         <div className="bg-[#0F1E4D]/40 border border-white/10 p-5 rounded-2xl flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Purse Spent</span>
-                                <div className="bg-yellow-500/10 p-1.5 rounded-lg border border-yellow-500/20 text-[#FDB913]">
-                                    <IndianRupee size={16} />
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Points Spent</span>
+                                <div className="bg-green-500/10 p-1.5 rounded-lg border border-green-500/20 text-green-400">
+                                    <Coins size={16} />
                                 </div>
                             </div>
                             <div>

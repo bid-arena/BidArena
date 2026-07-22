@@ -6,7 +6,7 @@ import {
     Trophy,
     MapPin,
     Calendar,
-    IndianRupee,
+    Coins,
     Users,
     ArrowLeft,
     Sparkles,
@@ -51,7 +51,7 @@ const AddTournament = () => {
         }
         if (name === "purseAmount") {
             if (value && Number(value) <= 0) {
-                tempErrors.purseAmount = "Purse amount must be greater than 0.";
+                tempErrors.purseAmount = "Points allocation must be greater than 0.";
             } else {
                 delete tempErrors.purseAmount;
             }
@@ -110,12 +110,8 @@ const AddTournament = () => {
     };
 
     const formatCurrency = (amount) => {
-        if (!amount) return "₹0";
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(amount);
+        if (!amount) return "0 Pts";
+        return new Intl.NumberFormat('en-IN').format(amount) + " Pts";
     };
 
     return (
@@ -140,7 +136,7 @@ const AddTournament = () => {
                                 Create New Tournament
                             </h1>
                             <p className="text-gray-400 text-sm">
-                                Configure your tournament structure, set total purse budget, and launch the registration.
+                                Configure your tournament structure, set total points allocation budget, and launch the registration.
                             </p>
                         </div>
                     </div>
@@ -260,11 +256,11 @@ const AddTournament = () => {
                                 {/* PURSE AMOUNT */}
                                 <div className="space-y-2">
                                     <label htmlFor="purseAmount" className="block text-sm font-semibold text-gray-300">
-                                        Total Purse Budget (INR) <span className="text-[#FDB913]">*</span>
+                                        Total Points Budget <span className="text-[#FDB913]">*</span>
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                            <IndianRupee size={18} />
+                                            <Coins size={18} />
                                         </div>
                                         <input
                                             id="purseAmount"
@@ -279,7 +275,7 @@ const AddTournament = () => {
                                     </div>
                                     {form.purseAmount && form.maxTeams && (
                                         <p className="text-[#FDB913] text-xs font-semibold flex items-center gap-1 mt-1">
-                                            <Sparkles size={12} /> Each team starts with: {formatCurrency(Math.floor(Number(form.purseAmount) / (Number(form.maxTeams) || 1)))}
+                                            <Sparkles size={12} /> Each team is allocated: {formatCurrency(Math.floor(Number(form.purseAmount) / (Number(form.maxTeams) || 1)))}
                                         </p>
                                     )}
                                     {errors.purseAmount && (
@@ -370,7 +366,7 @@ const AddTournament = () => {
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <div className="bg-[#001F54]/40 p-3 rounded-lg border border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase font-semibold flex items-center gap-1">
-                                                <IndianRupee size={10} /> Purse Budget
+                                                <Coins size={10} /> Points Budget
                                             </p>
                                             <p className="text-base font-extrabold text-green-400 mt-0.5">
                                                 {formatCurrency(form.purseAmount)}
@@ -389,7 +385,7 @@ const AddTournament = () => {
 
                                     {form.purseAmount && form.maxTeams && (
                                         <div className="mt-3.5 bg-[#FDB913]/5 border border-[#FDB913]/10 rounded-lg p-2.5 text-center text-xs">
-                                            <span className="text-gray-400">Team Starting Purse: </span>
+                                            <span className="text-gray-400">Team Allocated Points: </span>
                                             <span className="font-extrabold text-[#FDB913]">
                                                 {formatCurrency(Math.floor(Number(form.purseAmount) / (Number(form.maxTeams) || 1)))}
                                             </span>

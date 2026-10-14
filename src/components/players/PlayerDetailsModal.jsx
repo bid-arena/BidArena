@@ -87,8 +87,8 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
     const hue = (player?.name?.charCodeAt(0) || 60) % 360;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-[#080E27] border border-white/10 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="backdrop-blur-xl bg-[#02050E]/90 border border-white/[0.08] rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 shadow-black/80">
                 {/* Header Close button */}
                 <button 
                     onClick={onClose}
@@ -119,16 +119,17 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
                 ) : (
                     <div className="flex flex-col">
                         {/* Profile Hero Section */}
-                        <div className="relative p-6 bg-gradient-to-br from-[#0F1E4D]/80 via-[#080E27] to-[#080E27] border-b border-white/5 flex items-center gap-5 pt-8">
+                        <div className="relative p-6 bg-gradient-to-br from-[#FDB913]/[0.03] via-[#02050E] to-[#02050E] border-b border-white/[0.06] flex items-center gap-5 pt-8">
                             <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
                             
                             <div 
-                                className="w-20 h-20 rounded-2xl flex items-center justify-center text-black text-2xl font-black shrink-0 shadow-xl border border-white/10"
+                                className="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-black shrink-0 shadow-xl border border-white/20 relative z-10 overflow-hidden"
                                 style={{
                                     background: `linear-gradient(135deg, hsl(${hue},85%,65%), hsl(${(hue + 45) % 360},80%,50%))`
                                 }}
                             >
                                 {initials}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
                             </div>
 
                             <div className="min-w-0 flex-1">
@@ -146,7 +147,7 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
                         <div className="p-6 space-y-6 max-h-[400px] overflow-y-auto">
                             {/* Stats */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/3 border border-white/5 p-4 rounded-2xl flex flex-col justify-between">
+                                <div className="backdrop-blur-md bg-white/[0.01] border border-white/[0.04] p-4 rounded-2xl flex flex-col justify-between shadow-inner">
                                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                                         <Coins size={12} className="text-gray-400" /> Base Price
                                     </span>
@@ -154,14 +155,14 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
                                 </div>
                                 
                                 {player.soldRecord ? (
-                                    <div className="bg-green-500/5 border border-green-500/10 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div className="bg-emerald-500/[0.02] border border-emerald-500/20 p-4 rounded-2xl flex flex-col justify-between shadow-inner">
                                         <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider flex items-center gap-1.5">
                                             <Trophy size={12} className="text-green-400" /> Sold Price
                                         </span>
                                         <span className="text-lg font-black text-green-400 mt-1.5">{formatINR(player.soldRecord.price)}</span>
                                     </div>
                                 ) : (
-                                    <div className="bg-yellow-500/5 border border-yellow-500/10 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div className="bg-amber-500/[0.02] border border-amber-500/20 p-4 rounded-2xl flex flex-col justify-between shadow-inner">
                                         <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-1.5">
                                             <TrendingUp size={12} className="text-yellow-400" /> Auction Status
                                         </span>
@@ -172,7 +173,7 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
 
                             {/* Sold Details */}
                             {player.soldRecord && (
-                                <div className="bg-[#001F54]/10 border border-[#FDB913]/25 rounded-2xl p-4 flex items-center justify-between">
+                                <div className="backdrop-blur-md bg-[#FDB913]/[0.02] border border-[#FDB913]/20 rounded-2xl p-4 flex items-center justify-between shadow-inner">
                                     <div className="flex items-center gap-3">
                                         {player.soldRecord.team?.logo ? (
                                             <img 
@@ -201,21 +202,21 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
 
                             {/* Bid Logs */}
                             <div className="space-y-3">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Top Bid Ledger History</h4>
+                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Top Bid Ledger History</h4>
                                 {(!player.bids || player.bids.length === 0) ? (
-                                    <div className="text-center py-6 bg-white/2 border border-white/5 rounded-2xl text-xs text-gray-500 italic">
+                                    <div className="text-center py-6 bg-white/[0.01] border border-white/[0.04] rounded-2xl text-xs text-gray-500 italic">
                                         No bids have been logged for this player.
                                     </div>
                                 ) : (
                                     <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                                         {player.bids.map((bid, i) => (
-                                            <div key={bid.id || i} className="flex justify-between items-center bg-white/2 border border-white/5 rounded-xl px-4 py-2.5 text-xs">
+                                            <div key={bid.id || i} className="flex justify-between items-center bg-white/[0.01] border border-white/[0.04] rounded-xl px-4 py-2.5 text-xs">
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-1.5 h-1.5 bg-[#FDB913] rounded-full shrink-0" />
                                                     <span className="font-extrabold text-white">{bid.team?.name}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-green-400">{formatINR(bid.amount)}</span>
+                                                    <span className="font-bold text-green-400 font-mono">{formatINR(bid.amount)}</span>
                                                     <span className="text-[9px] text-gray-500">{new Date(bid.createdAt).toLocaleTimeString()}</span>
                                                 </div>
                                             </div>
@@ -226,10 +227,10 @@ const PlayerDetailsModal = ({ playerId, onClose }) => {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-5 border-t border-white/5 flex justify-end bg-white/1">
+                        <div className="p-5 border-t border-white/[0.06] flex justify-end bg-black/20">
                             <button
                                 onClick={onClose}
-                                className="bg-[#FDB913] hover:bg-amber-500 text-black font-black px-6 py-2.5 rounded-xl text-xs transition duration-150 shadow-lg shadow-[#FDB913]/10"
+                                className="bg-gradient-to-r from-[#FDB913] to-amber-500 hover:from-[#fec435] hover:to-amber-400 text-black font-black px-6 py-2.5 rounded-xl text-xs transition duration-200 shadow-lg shadow-[#FDB913]/10 hover:scale-[1.02] active:scale-95"
                             >
                                 Close Details
                             </button>

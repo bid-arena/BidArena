@@ -21,6 +21,7 @@ import TeamOwnerDashboard from "../pages/TeamOwnerDashboard";
 import ForceChangePassword from "../pages/ForceChangePassword";
 import AuctionsPage from "../pages/tournaments/AuctionsPage";
 import LiveAuction from "../pages/LiveAuction";
+import DemoAuction from "../pages/DemoAuction";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -32,6 +33,7 @@ const AppRoutes = () => {
                 <Route path="/" element={<Home />} />  {/* Home as first page */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/demo-auction" element={<DemoAuction />} />
                 {/* <Route path="*" element={<NotFound />} /> */}
 
                 {/* Shared Protected Routes (Access for both Organizer and Team Owner) */}

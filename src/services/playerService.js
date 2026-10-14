@@ -49,3 +49,53 @@ export const getPlayersByTournament = async (tournamentId) => {
         return (res.data.data || []).filter(p => p.tournamentId === tournamentId);
     }
 };
+
+/**
+ * Bulk upload players via Excel (.xlsx, .xls) or CSV (.csv) file
+ * @param {string} tournamentId
+ * @param {File} file
+ * @param {boolean} allowDuplicates
+ */
+export const bulkUploadPlayers = async (tournamentId, file, allowDuplicates = false) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tournamentId", tournamentId);
+    formData.append("allowDuplicates", allowDuplicates ? "true" : "false");
+
+    try {
+        const res = await api.post("/players/bulk-upload", formData);
+        return res.data;
+    } catch (err) {
+        if (err.response?.status === 404) {
+            const fallbackRes = await api.post(`/players/tournament/${tournamentId}/bulk-upload`, formData);
+            return fallbackRes.data;
+        }
+        throw err;
+    }
+};
+
+/**
+ * Download sample player template for Excel or CSV
+ * @param {'xlsx' | 'csv'} format
+ */
+export const downloadPlayerTemplate = async (format = "xlsx") => {
+    const res = await api.get(`/players/template?format=${format}`, {
+        responseType: "blob",
+    });
+
+    const blob = new Blob([res.data], {
+        type: format === "xlsx"
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : "text/csv;charset=utf-8;"
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `bidarena_players_template.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    return true;
+};
+

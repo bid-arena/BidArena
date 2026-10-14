@@ -18,7 +18,7 @@ const IPLMobileBidBar = ({
     const remainingPurse = myTeam?.remainingPurse || 0;
 
     return (
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#070C18]/95 backdrop-blur-xl border-t border-[#FDB913]/30 p-3 shadow-2xl space-y-2 animate-in slide-in-from-bottom duration-300">
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-[#02050E]/85 border-t border-white/[0.08] p-3 shadow-[0_-4px_25px_rgba(0,0,0,0.7)] space-y-2 animate-in slide-in-from-bottom duration-300">
             {/* Header info */}
             <div className="flex items-center justify-between text-xs">
                 <div className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ const IPLMobileBidBar = ({
             </div>
 
             {amILeading ? (
-                <div className="bg-emerald-500/20 border border-emerald-500/50 py-2.5 rounded-xl text-center text-emerald-400 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 animate-pulse">
+                <div className="backdrop-blur-md bg-emerald-500/10 border border-emerald-500/30 py-2.5 rounded-xl text-center text-emerald-400 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 animate-pulse shadow-lg shadow-emerald-500/5">
                     <Check size={14} /> You Hold Leading Bid!
                 </div>
             ) : (
@@ -45,28 +45,28 @@ const IPLMobileBidBar = ({
                     <button
                         disabled={bidPlacing || remainingPurse < nextMinBid}
                         onClick={() => handlePlaceBidAmount(nextMinBid)}
-                        className="bg-[#FDB913] text-black font-black py-2.5 rounded-xl text-[11px] truncate shadow-lg active:scale-95 disabled:opacity-40"
+                        className="bg-gradient-to-r from-[#FDB913] to-amber-500 hover:from-[#fec435] hover:to-amber-400 text-black font-black py-2.5 rounded-xl text-[11px] truncate shadow-lg active:scale-95 disabled:opacity-40 transition-all duration-200"
                     >
                         Min Bid
                     </button>
                     <button
                         disabled={bidPlacing || remainingPurse < (nextMinBid + 50000)}
                         onClick={() => handlePlaceBidAmount(nextMinBid + 50000)}
-                        className="bg-white/10 hover:bg-white/20 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40"
+                        className="backdrop-blur-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40 transition-all duration-200"
                     >
                         + 50k
                     </button>
                     <button
                         disabled={bidPlacing || remainingPurse < (nextMinBid + 100000)}
                         onClick={() => handlePlaceBidAmount(nextMinBid + 100000)}
-                        className="bg-white/10 hover:bg-white/20 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40"
+                        className="backdrop-blur-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40 transition-all duration-200"
                     >
                         + 100k
                     </button>
                     <button
                         disabled={bidPlacing || remainingPurse < (nextMinBid + 250000)}
                         onClick={() => handlePlaceBidAmount(nextMinBid + 250000)}
-                        className="bg-white/10 hover:bg-white/20 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40"
+                        className="backdrop-blur-md bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-extrabold py-2.5 rounded-xl text-[11px] truncate active:scale-95 disabled:opacity-40 transition-all duration-200"
                     >
                         + 250k
                     </button>

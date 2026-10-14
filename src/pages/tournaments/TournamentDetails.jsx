@@ -25,9 +25,11 @@ import {
     Target,
     Zap,
     ShieldCheck,
-    Eye
+    Eye,
+    FileSpreadsheet
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import BulkPlayerUploadModal from "../../components/players/BulkPlayerUploadModal";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const ROLE_CONFIG = {
@@ -105,19 +107,24 @@ const TournamentDetails = () => {
     const [playerToDelete, setPlayerToDelete] = useState(null);
     const [deletingPlayer, setDeletingPlayer] = useState(false);
 
+    // Bulk Upload Modal State
+    const [bulkUploadModalOpen, setBulkUploadModalOpen] = useState(false);
+
+    const fetchDetails = async (showLoading = false) => {
+        if (showLoading) setLoading(true);
+        try {
+            const data = await getTournamentById(id);
+            setTournament(data);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to load tournament details.");
+        } finally {
+            if (showLoading) setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                const data = await getTournamentById(id);
-                setTournament(data);
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to load tournament details.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchDetails();
+        fetchDetails(true);
     }, [id]);
 
     // Memoized map of playerId -> { team, price } to fix missing soldRecord relation on player
@@ -477,17 +484,27 @@ const TournamentDetails = () => {
                             {/* PLAYERS TAB */}
                             {activeTab === "players" && (
                                 <div className="space-y-6 animate-in fade-in duration-200">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div>
                                             <h2 className="text-lg font-bold text-gray-200">Player Pool</h2>
                                             <p className="text-xs text-gray-500 mt-0.5">Manage player listings and auction statuses for this season</p>
                                         </div>
-                                        <Link
-                                            to="/players/add"
-                                            className="inline-flex items-center gap-1.5 bg-[#FDB913] text-black px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition shadow-lg shadow-yellow-500/10"
-                                        >
-                                            <Plus size={14} /> Add Player
-                                        </Link>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setBulkUploadModalOpen(true)}
+                                                className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3.5 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition shadow-sm cursor-pointer"
+                                            >
+                                                <FileSpreadsheet size={14} className="text-emerald-400" />
+                                                <span>Bulk Import Players</span>
+                                            </button>
+                                            <Link
+                                                to={`/players/add?tournamentId=${id}`}
+                                                className="inline-flex items-center gap-1.5 bg-[#FDB913] text-black px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition shadow-lg shadow-yellow-500/10 cursor-pointer"
+                                            >
+                                                <Plus size={14} /> Add Player
+                                            </Link>
+                                        </div>
                                     </div>
 
                                     {/* Dynamic Mini Analytics Row */}
@@ -597,6 +614,24 @@ const TournamentDetails = () => {
                                                     : "No players matched your active search or filter selection."
                                                 }
                                             </p>
+                                            {tournament.players?.length === 0 && (
+                                                <div className="flex flex-wrap items-center justify-center gap-2.5 mt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setBulkUploadModalOpen(true)}
+                                                        className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer"
+                                                    >
+                                                        <FileSpreadsheet size={14} className="text-emerald-400" />
+                                                        <span>Upload Spreadsheet</span>
+                                                    </button>
+                                                    <Link
+                                                        to={`/players/add?tournamentId=${id}`}
+                                                        className="inline-flex items-center gap-1.5 bg-[#FDB913] text-black px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition cursor-pointer"
+                                                    >
+                                                        <Plus size={14} /> Add Player
+                                                    </Link>
+                                                </div>
+                                            )}
                                             {tournament.players?.length > 0 && (
                                                 <button
                                                     onClick={() => {
@@ -949,6 +984,17 @@ const TournamentDetails = () => {
                     </div>
                 </div>
             )}
+
+            {/* BULK PLAYER UPLOAD MODAL */}
+            <BulkPlayerUploadModal
+                isOpen={bulkUploadModalOpen}
+                onClose={() => setBulkUploadModalOpen(false)}
+                tournamentId={id}
+                tournamentName={tournament?.name}
+                onSuccess={() => {
+                    fetchDetails(false);
+                }}
+            />
         </div>
     );
 };

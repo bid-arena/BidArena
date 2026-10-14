@@ -6,6 +6,11 @@ import {
     deleteTeam
 } from "../../services/teamService";
 import {
+    getPlayersByTournament,
+    getPlayers
+} from "../../services/playerService";
+import PlayerDetailsModal from "../../components/players/PlayerDetailsModal";
+import {
     Trophy,
     User,
     Coins,
@@ -19,9 +24,34 @@ import {
     Plus,
     Tag,
     Mail,
-    Eye
+    Eye,
+    Target,
+    Zap,
+    ShieldCheck
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+const ROLE_CONFIG = {
+    Batsman: { color: "bg-blue-500/15 text-blue-400 border border-blue-500/25", icon: Target },
+    Bowler: { color: "bg-red-500/15 text-red-400 border border-red-500/25", icon: Zap },
+    "All-Rounder": { color: "bg-purple-500/15 text-purple-400 border border-purple-500/25", icon: ShieldCheck },
+    "Wicket-Keeper": { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    Wicketkeeper: { color: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Users },
+    default: { color: "bg-gray-500/15 text-gray-400 border border-gray-500/25", icon: User },
+};
+
+const RoleBadge = ({ role }) => {
+    const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.default;
+    const Icon = cfg.icon;
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${cfg.color}`}
+        >
+            <Icon size={11} />
+            {role || "Player"}
+        </span>
+    );
+};
 
 const TeamDetails = () => {
     const { id } = useParams();
@@ -29,6 +59,8 @@ const TeamDetails = () => {
 
     const [team, setTeam] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [playersMap, setPlayersMap] = useState({});
+    const [selectedPlayerId, setSelectedPlayerId] = useState(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState("roster"); // tabs: roster, bids
@@ -38,6 +70,24 @@ const TeamDetails = () => {
             try {
                 const data = await getTeamById(id);
                 setTeam(data);
+
+                // Fetch players to ensure player names are always resolved even if not nested in team object
+                try {
+                    let playersList = [];
+                    if (data?.tournamentId) {
+                        playersList = await getPlayersByTournament(data.tournamentId);
+                    } else {
+                        playersList = await getPlayers();
+                    }
+                    const map = {};
+                    (playersList || []).forEach((p) => {
+                        if (p.id) map[p.id] = p;
+                        if (p._id) map[p._id] = p;
+                    });
+                    setPlayersMap(map);
+                } catch (pErr) {
+                    console.warn("Could not load players map for team details:", pErr);
+                }
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load team details.");
@@ -47,6 +97,47 @@ const TeamDetails = () => {
         };
         fetchDetails();
     }, [id]);
+
+    const getPlayerData = (record) => {
+        if (!record) return { name: "Unknown Player", role: "Player", id: null, image: null };
+        const p = record.player;
+        if (p && (p.name || p.playerName)) {
+            return {
+                name: p.name || p.playerName,
+                role: p.role || "Player",
+                basePrice: p.basePrice,
+                image: p.image,
+                id: p.id || p._id || record.playerId
+            };
+        }
+        if (record.name || record.playerName) {
+            return {
+                name: record.name || record.playerName,
+                role: record.role || "Player",
+                basePrice: record.basePrice,
+                image: record.image,
+                id: record.playerId || record.id
+            };
+        }
+        const pId = record.playerId || record.id;
+        const found = playersMap[pId] || (pId ? playersMap[String(pId)] : null);
+        if (found) {
+            return {
+                name: found.name,
+                role: found.role || "Player",
+                basePrice: found.basePrice,
+                image: found.image,
+                id: found.id || found._id || pId
+            };
+        }
+        return {
+            name: pId ? `Player #${pId.substring(0, 8).toUpperCase()}` : "Unknown Player",
+            role: "Player",
+            basePrice: null,
+            image: null,
+            id: pId
+        };
+    };
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -297,28 +388,60 @@ const TeamDetails = () => {
                                             <table className="w-full text-sm text-left">
                                                 <thead className="bg-[#001F54]/50 text-gray-400 font-semibold text-xs border-b border-white/5">
                                                     <tr>
-                                                        <th className="p-4">Player ID</th>
+                                                        <th className="p-4">Player Name</th>
+                                                        <th className="p-4">Role</th>
                                                         <th className="p-4 text-right">Winning Price</th>
                                                         <th className="p-4 text-right">Sold At</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5 bg-[#001F54]/10">
-                                                    {team.playersWon.map((player) => (
-                                                        <tr key={player.id} className="hover:bg-[#001F54]/30 transition-colors">
-                                                            <td className="p-4 font-semibold text-gray-200">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <Tag size={14} className="text-[#FDB913]" />
-                                                                    <span>#{player.playerId.substring(0, 8).toUpperCase()}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-4 text-right text-green-400 font-extrabold">
-                                                                {formatCurrency(player.price)}
-                                                            </td>
-                                                            <td className="p-4 text-right text-gray-400">
-                                                                {new Date(player.soldAt).toLocaleDateString()}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {team.playersWon.map((player) => {
+                                                        const pData = getPlayerData(player);
+                                                        const initials = pData.name.replace(/[^a-zA-Z0-9 ]/g, "").trim().slice(0, 2).toUpperCase() || "P";
+                                                        return (
+                                                            <tr
+                                                                key={player.id}
+                                                                onClick={() => pData.id && setSelectedPlayerId(pData.id)}
+                                                                className="hover:bg-[#001F54]/30 transition-colors cursor-pointer group"
+                                                            >
+                                                                <td className="p-4 font-semibold text-gray-200">
+                                                                    <div className="flex items-center gap-3">
+                                                                        {pData.image ? (
+                                                                            <img
+                                                                                src={pData.image}
+                                                                                alt={pData.name}
+                                                                                className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
+                                                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 text-black text-xs font-black flex items-center justify-center shrink-0 shadow">
+                                                                                {initials}
+                                                                            </div>
+                                                                        )}
+                                                                        <div>
+                                                                            <span className="font-bold text-white text-sm group-hover:text-[#FDB913] transition-colors block">
+                                                                                {pData.name}
+                                                                            </span>
+                                                                            {player.playerId && (
+                                                                                <span className="text-[10px] text-gray-500 font-mono">
+                                                                                    #{player.playerId.substring(0, 8).toUpperCase()}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <RoleBadge role={pData.role} />
+                                                                </td>
+                                                                <td className="p-4 text-right text-green-400 font-extrabold text-sm">
+                                                                    {formatCurrency(player.price)}
+                                                                </td>
+                                                                <td className="p-4 text-right text-gray-400 text-xs">
+                                                                    {new Date(player.soldAt).toLocaleDateString()}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -341,28 +464,38 @@ const TeamDetails = () => {
                                                 <thead className="bg-[#001F54]/50 text-gray-400 font-semibold text-xs border-b border-white/5">
                                                     <tr>
                                                         <th className="p-4">Bid ID</th>
-                                                        <th className="p-4">Player ID</th>
+                                                        <th className="p-4">Player Name</th>
                                                         <th className="p-4 text-right">Bid Amount</th>
                                                         <th className="p-4 text-right">Timestamp</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5 bg-[#001F54]/10">
-                                                    {team.bids.map((bid) => (
-                                                        <tr key={bid.id} className="hover:bg-[#001F54]/30 transition-colors">
-                                                            <td className="p-4 font-semibold text-gray-200">
-                                                                #{bid.id.substring(0, 8).toUpperCase()}
-                                                            </td>
-                                                            <td className="p-4 text-gray-300">
-                                                                #{bid.playerId.substring(0, 8).toUpperCase()}
-                                                            </td>
-                                                            <td className="p-4 text-right text-[#FDB913] font-extrabold">
-                                                                {formatCurrency(bid.amount)}
-                                                            </td>
-                                                            <td className="p-4 text-right text-gray-400">
-                                                                {new Date(bid.createdAt).toLocaleTimeString()}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {team.bids.map((bid) => {
+                                                        const pData = getPlayerData(bid);
+                                                        return (
+                                                            <tr
+                                                                key={bid.id}
+                                                                onClick={() => pData.id && setSelectedPlayerId(pData.id)}
+                                                                className="hover:bg-[#001F54]/30 transition-colors cursor-pointer group"
+                                                            >
+                                                                <td className="p-4 font-semibold text-gray-400 font-mono text-xs">
+                                                                    #{bid.id.substring(0, 8).toUpperCase()}
+                                                                </td>
+                                                                <td className="p-4 font-semibold text-gray-200">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <User size={14} className="text-[#FDB913]" />
+                                                                        <span className="group-hover:text-[#FDB913] transition-colors">{pData.name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4 text-right text-[#FDB913] font-extrabold">
+                                                                    {formatCurrency(bid.amount)}
+                                                                </td>
+                                                                <td className="p-4 text-right text-gray-400 text-xs">
+                                                                    {new Date(bid.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -424,6 +557,14 @@ const TeamDetails = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* PLAYER DETAILS MODAL */}
+            {selectedPlayerId && (
+                <PlayerDetailsModal
+                    playerId={selectedPlayerId}
+                    onClose={() => setSelectedPlayerId(null)}
+                />
             )}
         </div>
     );

@@ -40,10 +40,17 @@ export default function Home() {
                         professional dashboard.
                     </p>
 
-                    <div className="flex gap-4 mt-8">
+                    <div className="flex flex-wrap gap-4 mt-8">
+                        <Link
+                            to="/demo-auction"
+                            className="bg-gradient-to-r from-yellow-400 to-[#D4AF37] text-black px-6 py-3 rounded-2xl font-black hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-lg shadow-yellow-500/20"
+                        >
+                            Enter Live Auction Demo 🏆
+                        </Link>
+
                         <Link
                             to="/register"
-                            className="bg-yellow-400 text-black px-6 py-3 rounded-2xl font-semibold hover:bg-yellow-300 transition duration-300 shadow-lg shadow-yellow-500/20"
+                            className="bg-white/5 border border-white/10 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-white/10 transition duration-300"
                         >
                             Get Started
                         </Link>

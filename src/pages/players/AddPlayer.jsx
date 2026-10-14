@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
     User,
     ArrowLeft,
@@ -17,11 +17,13 @@ import {
     Award,
     Activity,
     Flame,
-    Plus
+    Plus,
+    FileSpreadsheet
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { createPlayer } from "../../services/playerService";
 import api from "../../services/api";
+import BulkPlayerUploadModal from "../../components/players/BulkPlayerUploadModal";
 
 const ROLES = [
     {
@@ -89,14 +91,18 @@ const getInitials = (name) => {
 
 const AddPlayer = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const urlTournamentId = searchParams.get("tournamentId");
+
     const [loading, setLoading] = useState(false);
     const [tournaments, setTournaments] = useState([]);
+    const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
     const [form, setForm] = useState({
         name: "",
         role: "",
         basePrice: "",
-        tournamentId: "",
+        tournamentId: urlTournamentId || "",
     });
 
     const [errors, setErrors] = useState({});
@@ -109,7 +115,8 @@ const AddPlayer = () => {
                 const list = res.data.data || [];
                 setTournaments(list);
                 if (list.length > 0) {
-                    setForm(prev => ({ ...prev, tournamentId: list[0].id }));
+                    const matched = urlTournamentId ? list.find(t => String(t.id) === String(urlTournamentId)) : null;
+                    setForm(prev => ({ ...prev, tournamentId: matched ? matched.id : prev.tournamentId || list[0].id }));
                 }
             } catch (err) {
                 console.error("Tournaments load error:", err);
@@ -117,7 +124,7 @@ const AddPlayer = () => {
             }
         };
         load();
-    }, []);
+    }, [urlTournamentId]);
 
     const selectedTournament = tournaments.find(t => t.id === form.tournamentId);
     const selectedRoleConfig = ROLES.find(r => r.id === form.role);
@@ -207,11 +214,21 @@ const AddPlayer = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 bg-[#001F54]/50 border border-white/10 px-3.5 py-1.5 rounded-full self-start sm:self-auto">
-                            <Sparkles size={14} className="text-[#FDB913]" />
-                            <span className="text-xs font-semibold text-gray-300">
-                                Auction Pool Registration
-                            </span>
+                        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                            <button
+                                type="button"
+                                onClick={() => setBulkModalOpen(true)}
+                                className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3.5 py-1.5 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition shadow-sm cursor-pointer"
+                            >
+                                <FileSpreadsheet size={14} className="text-emerald-400" />
+                                <span>Bulk Import Spreadsheet</span>
+                            </button>
+                            <div className="flex items-center gap-2 bg-[#001F54]/50 border border-white/10 px-3.5 py-1.5 rounded-full">
+                                <Sparkles size={14} className="text-[#FDB913]" />
+                                <span className="text-xs font-semibold text-gray-300">
+                                    Single Player Registration
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -544,6 +561,19 @@ const AddPlayer = () => {
                     </div>
                 </div>
             </main>
+
+            {/* BULK PLAYER UPLOAD MODAL */}
+            <BulkPlayerUploadModal
+                isOpen={bulkModalOpen}
+                onClose={() => setBulkModalOpen(false)}
+                tournamentId={form.tournamentId || (tournaments[0]?.id)}
+                tournamentName={selectedTournament?.name || "Tournament"}
+                onSuccess={() => {
+                    if (form.tournamentId) {
+                        navigate(`/tournaments/${form.tournamentId}`);
+                    }
+                }}
+            />
         </div>
     );
 };

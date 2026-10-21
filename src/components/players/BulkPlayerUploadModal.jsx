@@ -169,7 +169,6 @@ const BulkPlayerUploadModal = ({
     const [previewRoleFilter, setPreviewRoleFilter] = useState("ALL");
 
     // Options
-    const [allowDuplicates, setAllowDuplicates] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [downloadingTemplate, setDownloadingTemplate] = useState(null); // 'xlsx' | 'csv' | null
     const [validationError, setValidationError] = useState(null);
@@ -280,7 +279,7 @@ const BulkPlayerUploadModal = ({
         setValidationError(null);
 
         try {
-            const res = await bulkUploadPlayers(tournamentId, file, allowDuplicates);
+            const res = await bulkUploadPlayers(tournamentId, file, false);
 
             if (res.success) {
                 setUploadResult(res);
@@ -438,8 +437,8 @@ const BulkPlayerUploadModal = ({
                                 onDrop={handleDrop}
                                 onClick={() => fileInputRef.current?.click()}
                                 className={`border-2 border-dashed rounded-3xl p-8 sm:p-10 text-center transition cursor-pointer relative overflow-hidden flex flex-col items-center justify-center gap-3 ${isDragging
-                                        ? "border-[#FDB913] bg-[#FDB913]/10 scale-[1.01]"
-                                        : "border-white/15 bg-white/[0.02] hover:border-[#FDB913]/50 hover:bg-white/[0.04]"
+                                    ? "border-[#FDB913] bg-[#FDB913]/10 scale-[1.01]"
+                                    : "border-white/15 bg-white/[0.02] hover:border-[#FDB913]/50 hover:bg-white/[0.04]"
                                     }`}
                             >
                                 <input
@@ -549,8 +548,8 @@ const BulkPlayerUploadModal = ({
                                             type="button"
                                             onClick={() => setPreviewRoleFilter(r)}
                                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition whitespace-nowrap cursor-pointer ${previewRoleFilter === r
-                                                    ? "bg-[#FDB913] text-black font-black shadow-sm"
-                                                    : "bg-white/5 hover:bg-white/10 text-gray-300"
+                                                ? "bg-[#FDB913] text-black font-black shadow-sm"
+                                                : "bg-white/5 hover:bg-white/10 text-gray-300"
                                                 }`}
                                         >
                                             {r === "ALL" ? "All Roles" : r}
@@ -632,26 +631,6 @@ const BulkPlayerUploadModal = ({
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-
-                            {/* Options Checkbox */}
-                            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-3 flex items-start gap-3">
-                                <input
-                                    id="allowDuplicatesCheckboxPreview"
-                                    type="checkbox"
-                                    checked={allowDuplicates}
-                                    onChange={(e) => setAllowDuplicates(e.target.checked)}
-                                    disabled={uploading}
-                                    className="mt-0.5 w-4 h-4 rounded border-gray-600 text-[#FDB913] focus:ring-[#FDB913]/50 focus:ring-offset-0 bg-[#070D1E] cursor-pointer"
-                                />
-                                <label htmlFor="allowDuplicatesCheckboxPreview" className="text-xs text-gray-300 cursor-pointer select-none space-y-0.5">
-                                    <span className="font-extrabold text-white block">
-                                        Allow duplicate player names
-                                    </span>
-                                    <span className="text-[11px] text-gray-400 block">
-                                        Check to allow registering players with identical names. By default, existing tournament names will be skipped.
-                                    </span>
-                                </label>
                             </div>
                         </div>
                     )}

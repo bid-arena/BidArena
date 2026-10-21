@@ -1,22 +1,18 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
+import { isTokenValid, clearAuthSession } from "../utils/auth";
 
 const ProtectedRoute = ({ allowedRoles }) => {
     const token = localStorage.getItem("token");
     const rawUser = localStorage.getItem("user");
     const user = rawUser ? JSON.parse(rawUser) : null;
 
-    if (!token) {
+    if (!token || !isTokenValid(token)) {
+        clearAuthSession();
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        // Direct unauthorized role-specific redirect to prevent cross-portal access
-        if (user.role === "ORGANIZER") {
-            return <Navigate to="/organizer-dashboard" replace />;
-        } else if (user.role === "TEAM_OWNER") {
-            return <Navigate to="/owner-dashboard" replace />;
-        }
+    if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
         return <Navigate to="/login" replace />;
     }
 

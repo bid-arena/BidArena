@@ -1,59 +1,30 @@
-import axios from "axios";
-
-const API = "http://localhost:5000/api";
-
-const getToken = () => {
-    return localStorage.getItem("token");
-};
+import api from "./api";
 
 export const getTeams = async () => {
-
-    const res = await axios.get(`${API}/teams/organizer`, {
-        headers: {
-            Authorization: `Bearer ${getToken()}`
-        }
-    });
-
+    const res = await api.get("/teams/organizer");
     return res.data.data;
 };
 
 export const createTeam = async (data) => {
-
-    const res = await axios.post(`${API}/teams/create`, data, {
-        headers: {
-            Authorization: `Bearer ${getToken()}`
-        }
-    });
-
+    const res = await api.post("/teams/create", data);
     return res.data.data;
 };
 
 export const deleteTeam = async (id) => {
-
-    const res = await axios.delete(`${API}/teams/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-    });
-
+    const res = await api.delete(`/teams/${id}`);
     return res.data;
 };
 
 export const getTeamById = async (id) => {
-    const res = await axios.get(`${API}/teams/${id}`, {
-        headers: {
-            Authorization: `Bearer ${getToken()}`
-        }
-    });
-
+    const res = await api.get(`/teams/${id}`);
     return res.data.data;
 };
 
 export const updateTeam = async (id, data) => {
-    const res = await axios.put(`${API}/teams/${id}`, data, {
+    const res = await api.put(`/teams/${id}`, data, {
         headers: {
-            Authorization: `Bearer ${getToken()}`,
             "Content-Type": "multipart/form-data"
         }
     });
-
     return res.data.data;
 };

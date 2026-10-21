@@ -1,6 +1,25 @@
+import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import LoginForm from "../features/auth/LoginForm";
 
 const Login = () => {
+    const location = useLocation();
+
+    useEffect(() => {
+        const flashMessage = location.state?.message || sessionStorage.getItem("auth_toast");
+        const flashType = sessionStorage.getItem("auth_toast_type");
+
+        if (flashMessage) {
+            if (flashType === "error") {
+                toast.error(flashMessage, { id: "auth-flash", duration: 5500 });
+            } else {
+                toast.success(flashMessage, { id: "auth-flash", duration: 5500 });
+            }
+            sessionStorage.removeItem("auth_toast");
+            sessionStorage.removeItem("auth_toast_type");
+        }
+    }, [location]);
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#0b1220] to-black flex items-center justify-center px-6">
 

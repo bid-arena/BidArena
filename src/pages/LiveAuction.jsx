@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
+import { clearAuthSession } from "../utils/auth";
+import { disconnectUserSocket } from "../services/socketService";
 import Sidebar from "../components/layout/Sidebar";
 import {
     ArrowLeft,
@@ -433,13 +435,47 @@ const LiveAuction = () => {
     useEffect(() => {
         loadInitialData();
 
-        const socketUrl = "http://localhost:5000";
-        const socket = io(socketUrl);
+        const token = localStorage.getItem("token");
+        const socketUrl = import.meta.env.VITE_SOCKET_URL ||
+            import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+            "http://localhost:5000";
+        const socket = io(socketUrl, {
+            auth: { token },
+            transports: ["websocket", "polling"],
+        });
         socketRef.current = socket;
 
         socket.on("connect", () => {
             setSocketConnected(true);
             socket.emit("join-auction", tournamentId);
+            try {
+                const rawUser = localStorage.getItem("user");
+                if (rawUser) {
+                    const u = JSON.parse(rawUser);
+                    const userId = u?._id || u?.id;
+                    if (userId) {
+                        socket.emit("join-user", userId);
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        });
+
+        socket.on("force-logout", (data) => {
+            try {
+                socket.disconnect();
+            } catch {
+                // ignore
+            }
+            disconnectUserSocket();
+            clearAuthSession();
+            const message =
+                data?.message ||
+                "You have been logged out because your account was logged in from another device.";
+            sessionStorage.setItem("auth_toast", message);
+            sessionStorage.setItem("auth_toast_type", "error");
+            window.location.href = "/login";
         });
 
         socket.on("disconnect", () => {

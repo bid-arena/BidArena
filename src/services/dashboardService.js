@@ -1,4 +1,5 @@
 import api from "./api";
+import { disconnectUserSocket } from "./socketService";
 
 /**
  * Fetch logged-in user profile from server.
@@ -96,6 +97,7 @@ export const getDashboardStats = async () => {
  * Server-side logout — blacklists the JWT in Redis.
  */
 export const logoutUser = async () => {
+    disconnectUserSocket();
     const token = localStorage.getItem("token");
     if (token) {
         try {

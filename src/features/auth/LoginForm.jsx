@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-hot-toast";
+import { initUserSocket } from "../../services/socketService";
 
 const LoginForm = () => {
 
@@ -35,6 +37,9 @@ const LoginForm = () => {
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
 
+            // Initialize authenticated socket for single-device listener
+            initUserSocket(token);
+
             // Force password change check
             if (user.isPasswordTemp) {
                 navigate("/force-change-password");
@@ -63,7 +68,7 @@ const LoginForm = () => {
             }
 
         } catch (error) {
-            alert(error.response?.data?.message || "Login failed");
+            toast.error(error.response?.data?.message || "Login failed");
         } finally {
             setLoading(false);
         }

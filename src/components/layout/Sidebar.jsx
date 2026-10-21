@@ -10,6 +10,7 @@ import {
     Menu,
     X,
     AlertTriangle,
+    Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
     { to: "/teams", label: "Teams", icon: Users },
     { to: "/players", label: "Players", icon: User },
     { to: "/auctions", label: "Auctions", icon: Gavel },
+    { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 const Sidebar = () => {
@@ -74,7 +76,8 @@ const Sidebar = () => {
         const menuItems = user?.role === "TEAM_OWNER"
             ? [
                 { to: "/owner-dashboard", label: "Overview", icon: LayoutDashboard },
-                ...(teamTournamentId ? [{ to: `/auctions/live/${teamTournamentId}`, label: "Live Auction", icon: Gavel }] : [])
+                ...(teamTournamentId ? [{ to: `/auctions/live/${teamTournamentId}`, label: "Live Auction", icon: Gavel }] : []),
+                { to: "/settings", label: "Settings", icon: Settings }
               ]
             : NAV_ITEMS;
 
@@ -131,19 +134,25 @@ const Sidebar = () => {
             {/* Profile + Logout */}
             <div className="px-4 py-4 border-t border-white/5 space-y-2">
                 {user && (
-                    <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/3 border border-white/5">
+                    <Link
+                        to="/settings"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-[#FDB913]/30 transition group cursor-pointer"
+                        title="Open Account Settings"
+                    >
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FDB913] to-amber-600 flex items-center justify-center text-black text-xs font-black shrink-0">
                             {initials}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">
+                            <p className="text-sm font-bold text-white group-hover:text-[#FDB913] transition truncate">
                                 {user.name || "User"}
                             </p>
                             <p className="text-[10px] text-gray-500 capitalize truncate">
                                 {user.role?.toLowerCase() || "organizer"}
                             </p>
                         </div>
-                    </div>
+                        <ChevronRight size={14} className="text-gray-500 group-hover:text-[#FDB913] transition shrink-0" />
+                    </Link>
                 )}
 
                 <button

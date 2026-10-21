@@ -22,6 +22,7 @@ import ForceChangePassword from "../pages/ForceChangePassword";
 import AuctionsPage from "../pages/tournaments/AuctionsPage";
 import LiveAuction from "../pages/LiveAuction";
 import DemoAuction from "../pages/DemoAuction";
+import Settings from "../pages/Settings";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -40,6 +41,7 @@ const AppRoutes = () => {
                 <Route element={<ProtectedRoute allowedRoles={["ORGANIZER", "TEAM_OWNER"]} />}>
                     <Route path="/force-change-password" element={<ForceChangePassword />} />
                     <Route path="/auctions/live/:tournamentId" element={<LiveAuction />} />
+                    <Route path="/settings" element={<Settings />} />
                 </Route>
 
                 {/* Organizer Private Routes */}

@@ -13,7 +13,7 @@ import {
     Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { logoutUser } from "../../services/dashboardService";
 import { toast } from "react-hot-toast";
 
@@ -48,13 +48,7 @@ const Sidebar = () => {
         if (user?.role === "TEAM_OWNER") {
             const fetchTeam = async () => {
                 try {
-                    const token = localStorage.getItem("token");
-                    if (!token) return;
-                    const res = await axios.get("http://localhost:5000/api/teams/owner/my-team", {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    });
+                    const res = await api.get("/teams/owner/my-team");
                     if (res.data?.data?.tournamentId) {
                         setTeamTournamentId(res.data.data.tournamentId);
                     }

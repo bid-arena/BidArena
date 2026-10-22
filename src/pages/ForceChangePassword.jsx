@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2, ShieldAlert, KeyRound, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import toast from "react-hot-toast";
 
 const ForceChangePassword = () => {
@@ -40,28 +40,19 @@ const ForceChangePassword = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem("token");
-            const res = await axios.put(
-                "http://localhost:5000/api/auth/change-password",
-                {
-                    currentPassword: form.currentPassword,
-                    newPassword: form.newPassword
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
+            const res = await api.put("/auth/change-password", {
+                currentPassword: form.currentPassword,
+                newPassword: form.newPassword
+            });
 
             const newToken = res.data.token;
-            localStorage.setItem("token", newToken);
+            if (newToken) {
+                localStorage.setItem("token", newToken);
+            }
 
             // Fetch the updated user profile
-            const profileRes = await axios.get("http://localhost:5000/api/auth/me", {
-                headers: {
-                    Authorization: `Bearer ${newToken}`
-                }
+            const profileRes = await api.get("/auth/me", {
+                headers: newToken ? { Authorization: `Bearer ${newToken}` } : {}
             });
 
             localStorage.setItem("user", JSON.stringify(profileRes.data.data));

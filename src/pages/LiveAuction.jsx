@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { clearAuthSession } from "../utils/auth";
-import { disconnectUserSocket } from "../services/socketService";
+import { disconnectUserSocket, getSocketUrl } from "../services/socketService";
+import api from "../services/api";
 import Sidebar from "../components/layout/Sidebar";
 import {
     ArrowLeft,
@@ -393,12 +394,8 @@ const LiveAuction = () => {
     };
 
     const apiGetMyTeam = async () => {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/teams/owner/my-team", {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        const json = await res.json();
-        return json.data;
+        const res = await api.get("/teams/owner/my-team");
+        return res.data?.data;
     };
 
     const refreshLists = async () => {
@@ -436,9 +433,7 @@ const LiveAuction = () => {
         loadInitialData();
 
         const token = localStorage.getItem("token");
-        const socketUrl = import.meta.env.VITE_SOCKET_URL ||
-            import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
-            "http://localhost:5000";
+        const socketUrl = getSocketUrl();
         const socket = io(socketUrl, {
             auth: { token },
             transports: ["websocket", "polling"],

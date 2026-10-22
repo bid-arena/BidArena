@@ -5,6 +5,11 @@ export const getTeams = async () => {
     return res.data.data;
 };
 
+export const getMyTeam = async () => {
+    const res = await api.get("/teams/owner/my-team");
+    return res.data.data;
+};
+
 export const createTeam = async (data) => {
     const res = await api.post("/teams/create", data);
     return res.data.data;

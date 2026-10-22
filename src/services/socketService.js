@@ -8,9 +8,9 @@ let isForceLoggingOut = false;
  * Resolves the Socket.IO server URL based on environment or default.
  */
 export const getSocketUrl = () => {
-    const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
-    if (envUrl) {
-        return envUrl.replace(/\/api\/?$/, "");
+    const rawUrl = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+    if (rawUrl) {
+        return rawUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
     }
     return "http://localhost:5000";
 };

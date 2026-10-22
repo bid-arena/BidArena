@@ -2,13 +2,19 @@ import axios from "axios";
 import { isTokenValid, clearAuthSession } from "../utils/auth";
 import { disconnectUserSocket } from "./socketService";
 
+export const getApiBaseUrl = () => {
+    const rawUrl = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+    if (!rawUrl) {
+        return "http://localhost:5000/api";
+    }
+    return rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
+};
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL
-        ? (import.meta.env.VITE_API_URL.endsWith("/api")
-            ? import.meta.env.VITE_API_URL
-            : `${import.meta.env.VITE_API_URL}/api`)
-        : "http://localhost:5000/api",
+    baseURL: getApiBaseUrl(),
 });
+
+axios.defaults.baseURL = api.defaults.baseURL;
 
 // 🔐 Attach and validate token automatically before request
 api.interceptors.request.use(
